@@ -1,0 +1,37 @@
+{
+  "rule_based": {
+    "precision": 1.0,
+    "recall": 0.5333,
+    "f1_score": 0.6957,
+    "accuracy": 0.825,
+    "predicted_suspicious": 8
+  },
+  "isolation_forest": {
+    "precision": 1.0,
+    "recall": 0.5333,
+    "f1_score": 0.6957,
+    "accuracy": 0.825,
+    "predicted_suspicious": 8
+  },
+  "local_outlier_factor": {
+    "precision": 1.0,
+    "recall": 0.5333,
+    "f1_score": 0.6957,
+    "accuracy": 0.825,
+    "predicted_suspicious": 8
+  },
+  "random_forest": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "accuracy": 1.0,
+    "predicted_suspicious": 15
+  },
+  "ensemble": {
+    "precision": 1.0,
+    "recall": 0.8,
+    "f1_score": 0.8889,
+    "accuracy": 0.925,
+    "predicted_suspicious": 12
+  }
+}

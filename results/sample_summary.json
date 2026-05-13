@@ -1,0 +1,66 @@
+{
+  "rows_processed": 40,
+  "unique_hosts": 20,
+  "suspicious_rows": 12,
+  "top_hosts": {
+    "host-m": 2,
+    "host-n": 2,
+    "host-p": 2,
+    "host-q": 2,
+    "host-s": 2
+  },
+  "flagged_examples": [
+    {
+      "row_id": 26,
+      "host": "host-m",
+      "process_name": "encryptor.exe"
+    },
+    {
+      "row_id": 27,
+      "host": "host-m",
+      "process_name": "encryptor.exe"
+    },
+    {
+      "row_id": 28,
+      "host": "host-n",
+      "process_name": "powershell.exe"
+    },
+    {
+      "row_id": 29,
+      "host": "host-n",
+      "process_name": "powershell.exe"
+    },
+    {
+      "row_id": 31,
+      "host": "host-o",
+      "process_name": "miner.exe"
+    },
+    {
+      "row_id": 32,
+      "host": "host-p",
+      "process_name": "unknown.exe"
+    },
+    {
+      "row_id": 33,
+      "host": "host-p",
+      "process_name": "unknown.exe"
+    },
+    {
+      "row_id": 34,
+      "host": "host-q",
+      "process_name": "wscript.exe"
+    },
+    {
+      "row_id": 35,
+      "host": "host-q",
+      "process_name": "wscript.exe"
+    },
+    {
+      "row_id": 36,
+      "host": "host-r",
+      "process_name": "backup-killer.exe"
+    }
+  ],
+  "best_method_by_f1": "random_forest",
+  "metrics_available": true
+}

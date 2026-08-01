@@ -1,5 +1,9 @@
 # Host-Based Behavioral Monitoring and Anomaly Detection
 
+[![CI](https://github.com/Farooq-Syed/host-based-behavioral-monitoring-and-anomaly-detection/actions/workflows/ci.yml/badge.svg)](https://github.com/Farooq-Syed/host-based-behavioral-monitoring-and-anomaly-detection/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 This project analyzes host telemetry windows to detect suspicious behavior associated with ransomware-style activity, destructive scripting, and resource abuse. It combines rule-based detection with machine learning to compare how different methods behave on the same telemetry stream.
 
 ## Results at a glance
@@ -122,6 +126,15 @@ Metrics from `results/sample_metrics.json`:
 | Local Outlier Factor | 1.00 | 0.53 | 0.70 | 0.83 |
 | Random Forest | 1.00 | 1.00 | 1.00 | 1.00 |
 | Ensemble | 1.00 | 0.80 | 0.89 | 0.93 |
+
+> **Reproducibility note.** The table above reflects the committed
+> `results/sample_metrics.json`. The Random Forest row is sensitive to the
+> scikit-learn version and cross-validation shuffling: on more recent scikit-learn
+> releases the same run reproduces approximately Precision 0.94 / Recall 1.00 /
+> F1 0.97 / Accuracy 0.97 rather than a perfect 1.00. The qualitative pattern —
+> the supervised model separating the synthetic sample far more cleanly than the
+> unsupervised methods — is unchanged. Pinning versions would make the exact figures
+> deterministic; they are intentionally left as floors in `requirements.txt`.
 
 These results show a useful pattern for the project:
 

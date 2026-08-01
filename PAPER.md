@@ -115,7 +115,32 @@ The bundled documentation reports Random Forest at F1 = 1.00, whereas the curren
 environment reproduces 0.97; this reflects library and cross-validation drift and is
 noted for reconciliation.
 
-## 5. Limitations
+A note on data was added in this pass. Because a 40-row sample makes every method
+look near-perfect, a documented synthetic generator (`generate_telemetry.py`) now
+produces a larger dataset with overlapping class distributions and injected label
+noise. On 2,000 rows the methods separate realistically — rule-based and Isolation
+Forest around F1 0.6–0.7, Local Outlier Factor weaker, the supervised forest strong
+but no longer perfect (~0.95). The generation rationale is documented in
+`docs/DATA.md`.
+
+## 5. Relation to prior work
+
+The techniques here are standard and deliberately so. Rule-based detection of
+ransomware behavior — mass file renames, high write entropy, shadow-copy deletion — is
+the logic behind commercial anti-ransomware heuristics and behavioral EDR rules.
+Isolation Forest and Local Outlier Factor are established unsupervised anomaly
+detectors, and the practice of comparing rule-based, unsupervised, and supervised
+detection on host telemetry is common in the host-based intrusion detection
+literature; datasets such as those from the DARPA Transparent Computing program and
+various Sysmon-based endpoint corpora are used for that purpose. This project does not
+claim a new method or a state-of-the-art result; its contribution is a correct,
+tested, legible implementation that makes the three detection philosophies directly
+comparable on one telemetry stream, with honest synthetic data and an evaluation that
+can be trusted. A rigorous comparison against published host-IDS baselines on a shared
+public dataset is the natural next step and is deliberately not claimed here, since it
+would require running on that dataset rather than the synthetic sample.
+
+## 6. Limitations
 
 - The dataset is small and synthetic; the metrics validate the pipeline, not
   real-world detection rates.
@@ -124,7 +149,7 @@ noted for reconciliation.
 - The ensemble is an unweighted vote, not a calibrated combiner.
 - Unsupervised contamination is a fixed fraction rather than learned from the data.
 
-## 6. Future work
+## 7. Future work
 
 The highest-value extension is sequence modeling across adjacent windows, since
 ransomware unfolds as a trajectory (enumeration → shadow-copy deletion → mass
@@ -133,7 +158,7 @@ that weights methods by validated reliability, process-reputation or signer
 enrichment, and adaptation of the input path to Sysmon-style telemetry so the tool
 consumes real endpoint data rather than a CSV.
 
-## 7. Conclusion
+## 8. Conclusion
 
 The detectors in this project are conventional; its value as an artifact is that it
 makes their disagreement legible and that its evaluation can be trusted. The work

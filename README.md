@@ -67,6 +67,24 @@ Use a different anomaly fraction:
 python monitor.py --contamination 0.15
 ```
 
+## Larger synthetic dataset
+
+The 40-row sample makes every method look near-perfect, which is misleading.
+`generate_telemetry.py` produces a larger, deliberately harder synthetic dataset
+(overlapping class distributions, five behavior archetypes, a few percent of label
+noise) so the metrics carry more weight. See [docs/DATA.md](docs/DATA.md) for the
+design rationale — the data is synthetic and for development, not a benchmark.
+
+```powershell
+python generate_telemetry.py --rows 2000 --output data/synthetic_host_telemetry.csv
+python monitor.py --input data/synthetic_host_telemetry.csv
+```
+
+On the 2,000-row set the methods land where you would expect on a non-trivial problem:
+rule-based and Isolation Forest around F1 0.6–0.7, LOF weaker, a supervised Random
+Forest strong but not perfect (~0.95), and the ensemble in between — a realistic
+spread rather than everything scoring 1.00.
+
 ## Output
 
 The script writes:

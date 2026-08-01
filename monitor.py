@@ -16,7 +16,12 @@ import json
 from pathlib import Path
 from typing import Dict, List
 
-import matplotlib.pyplot as plt
+import matplotlib
+
+# Select a non-interactive backend before importing pyplot so plots render on
+# headless machines and in CI without a display server.
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd
 from sklearn.ensemble import IsolationForest, RandomForestClassifier
 from sklearn.metrics import (
@@ -161,11 +166,21 @@ def random_forest_detector(scaled_features: pd.DataFrame, truth: pd.Series | Non
         class_weight="balanced",
         min_samples_leaf=2,
     )
-    splitter = StratifiedKFold(n_splits=5, shuffle=True, random_state=random_state)
-    predictions = cross_val_predict(model, scaled_features, truth, cv=splitter, method="predict")
-    probabilities = cross_val_predict(model, scaled_features, truth, cv=splitter, method="predict_proba")[:, 1]
-    report["random_forest_flag"] = predictions.astype(int)
+    n_positive = int((truth == 1).sum())
+    n_negative = int((truth == 0).sum())
+    n_splits = max(2, min(5, n_positive, n_negative))
+    splitter = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+
+    # A single cross-validated pass produces the out-of-fold probabilities; the
+    # flag is then derived from those same probabilities. Doing it this way (rather
+    # than two separate cross_val_predict calls for "predict" and "predict_proba")
+    # trains the forest once instead of twice and guarantees the flag and score are
+    # mutually consistent — a flag of 1 always corresponds to score >= 0.5.
+    probabilities = cross_val_predict(
+        model, scaled_features, truth, cv=splitter, method="predict_proba"
+    )[:, 1]
     report["random_forest_score"] = probabilities.round(4)
+    report["random_forest_flag"] = (probabilities >= 0.5).astype(int)
     return report
 
 

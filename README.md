@@ -2,6 +2,15 @@
 
 This project analyzes host telemetry windows to detect suspicious behavior associated with ransomware-style activity, destructive scripting, and resource abuse. It combines rule-based detection with machine learning to compare how different methods behave on the same telemetry stream.
 
+## Results at a glance
+
+![Results panel](assets/results_panel.png)
+
+Four detectors score each telemetry window and vote. On the sample the ensemble
+recovers recall (0.80) over any single unsupervised method (0.53) while holding
+precision at 1.00. See [PAPER.md](PAPER.md) for the method and [JOURNAL.md](JOURNAL.md)
+for the development notes.
+
 ## Features
 
 - host telemetry monitoring from CSV

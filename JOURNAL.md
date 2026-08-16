@@ -93,7 +93,7 @@ log-analysis project. And the smoke test had the same bare-`"python"` subprocess
 
 ## Tests
 
-Went from 1 smoke test to 9. The new `test_detection.py` covers `normalize_label`
+Went from 1 smoke test to 14. The new `test_detection.py` covers `normalize_label`
 (all the synonym sets plus the raise-on-unknown path), the rule detector on both a
 ransomware-shaped row and a benign one, the RF flag/score consistency, the ensemble
 2-vote rule, and the small-imbalanced-data case. All green.

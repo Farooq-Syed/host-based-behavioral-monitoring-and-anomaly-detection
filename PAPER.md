@@ -21,7 +21,7 @@ its training cost and makes the emitted flag and probability consistent by
 construction; made the fold count adaptive so the pipeline no longer fails on
 class-imbalanced inputs; and verified — rather than assumed — that a scaling step
 which superficially resembles data leakage is in fact inert for the tree model in
-use. Test coverage rose from a single smoke test to nine, and the reported metrics
+use. Test coverage rose from a single smoke test to fourteen, and the reported metrics
 are unchanged, confirming the changes were refactors rather than behavioral shifts.
 
 ## 1. Introduction

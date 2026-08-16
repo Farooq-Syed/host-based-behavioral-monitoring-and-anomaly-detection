@@ -93,7 +93,7 @@ fires — or fires at random — counts for almost nothing.
 On the sample data the methods separate as expected. The rule engine and both
 unsupervised detectors reach perfect precision with recall near 0.53 (F1 ≈ 0.70):
 they catch the unambiguous encryptor windows and miss the subtler ones. The
-supervised forest reaches F1 ≈ 0.97 on cross-validated predictions, and the
+supervised forest reaches F1 = 1.00 on cross-validated predictions, and the
 majority-vote ensemble sits between at F1 ≈ 0.89, recovering recall while holding
 precision at 1.00.
 
@@ -105,12 +105,14 @@ finding is that precision weighting does not simply reproduce the best method; i
 changes the operating point of the whole pipeline, which is precisely the knob a
 cost-aware deployment needs.
 
-The progression detector adds the trajectory signal the snapshot methods cannot
-see. On the 40-window sample it flags the hosts whose malicious windows form a
-canonical arc and stays silent on the isolated loud ones. Its value is not a
-headline number; it is that a finding now carries a *narrative* — this host moved
-through the stages an encryptor moves through — which is the kind of explanation an
-analyst can act on.
+The progression detector is honest about what the sample can and cannot show. None
+of the 40 bundled windows forms a full recon → tampering → encryption arc on a single
+host, so it flags nothing on this small set — which is the correct behavior for data
+that contains no trajectory. Its value shows where the ordering exists: on the larger
+synthetic set, and on any real multi-window host where the loud encryptor window is
+preceded by quieter staging. The reputation detector, similarly, is modest on the
+sample (F1 ≈ 0.38): the built-in list is a weak prior, not a detector, and it is
+deliberately weighted that way in the calibrated ensemble.
 
 ## 5. What the audit of my own harness found
 

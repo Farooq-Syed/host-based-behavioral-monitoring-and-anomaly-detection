@@ -160,16 +160,16 @@ Metrics from `results/sample_metrics.json`:
 | Isolation Forest | 1.00 | 0.53 | 0.70 | 0.83 |
 | Local Outlier Factor | 1.00 | 0.53 | 0.70 | 0.83 |
 | Random Forest | 1.00 | 1.00 | 1.00 | 1.00 |
+| Progression | 0.00 | 0.00 | 0.00 | 0.63 |
+| Reputation | 0.67 | 0.27 | 0.38 | 0.68 |
 | Ensemble | 1.00 | 0.80 | 0.89 | 0.93 |
 
-> **Reproducibility note.** The table above reflects the committed
-> `results/sample_metrics.json`. The Random Forest row is sensitive to the
-> scikit-learn version and cross-validation shuffling: on more recent scikit-learn
-> releases the same run reproduces approximately Precision 0.94 / Recall 1.00 /
-> F1 0.97 / Accuracy 0.97 rather than a perfect 1.00. The qualitative pattern —
-> the supervised model separating the synthetic sample far more cleanly than the
-> unsupervised methods — is unchanged. Pinning versions would make the exact figures
-> deterministic; they are intentionally left as floors in `requirements.txt`.
+> **Reproducibility note.** `requirements.txt` pins exact package versions, so these
+> numbers reproduce as-is. The progression row is honest about the sample: none of
+> the 40 windows forms a full recon -> tampering -> encryption trajectory, so the
+> detector correctly flags nothing on this small set (it matters on the larger
+> synthetic set and on real multi-window hosts). The reputation row shows the
+> built-in list catching 4 of 15 malicious windows.
 
 These results show a useful pattern for the project:
 

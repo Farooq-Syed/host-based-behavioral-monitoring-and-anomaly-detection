@@ -22,7 +22,9 @@ for the development notes.
 - `Isolation Forest` anomaly detection
 - `Local Outlier Factor` anomaly detection
 - `Random Forest` supervised classification when labels are available
-- ensemble voting across methods
+- ransomware **progression** detection across windows (recon -> tampering -> encryption)
+- process **reputation** enrichment (extendable with a CSV)
+- ensemble voting, plus a **precision-calibrated** ensemble variant
 - metrics, plots, and notebook-based analysis
 
 ## Project Structure
@@ -131,6 +133,21 @@ When labels are available, the supervised model is evaluated with cross-validate
 
 The final alert uses a simple vote across the rule-based detector and the three ML methods.
 
+### Progression
+
+Ransomware is a sequence, not a snapshot. The progression detector walks each host's
+windows in time and only counts the encryption stage as part of an attack trajectory
+when recon (mass renames, unsigned code) and shadow-copy tampering were observed
+earlier on that same host.
+
+### Calibrated ensemble
+
+`--ensemble weighted` replaces the majority vote with a precision-calibrated
+combination: each detector's weight is its precision on the training labels, so a
+method that never fires — or fires at random — counts for almost nothing. This trades
+recall for a tighter operating point (F1 ≈ 0.75 vs. 0.89 on the sample) and is the
+version a cost-aware deployment would tune.
+
 ## Sample Results
 
 The included sample dataset is synthetic and meant to simulate benign activity, ransomware-like behavior, destructive scripting, and high-resource abuse. It is useful for validating the pipeline and showing how different methods compare.
@@ -185,6 +202,8 @@ This project is meant to look more like host-based detection engineering than a 
 ## Next Steps
 
 - replace the synthetic sample with larger endpoint telemetry
-- add time-series sequence modeling across adjacent windows
-- add process reputation or signer enrichment
+- ~~add time-series sequence modeling across adjacent windows~~ - done in a first,
+  rule-based form (the progression detector); a learned sequence model is the real
+  next step
+- ~~add process reputation or signer enrichment~~ - done (built-in list, CSV-extendable)
 - adapt the input pipeline to Sysmon-style telemetry

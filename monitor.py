@@ -57,6 +57,35 @@ FEATURE_COLUMNS = [
     "shadow_copy_events",
 ]
 
+# Small hand-maintained reputation map. The "abuse_prone" bucket lists living
+# binaries that attackers routinely lean on; the point is not to call them
+# malicious, but to weight a telemetry window slightly when one shows up.
+BUILTIN_REPUTATION = {
+    "explorer.exe": "trusted",
+    "svchost.exe": "trusted",
+    "lsass.exe": "trusted",
+    "services.exe": "trusted",
+    "winlogon.exe": "trusted",
+    "csrss.exe": "trusted",
+    "smss.exe": "trusted",
+    "taskhostw.exe": "trusted",
+    "SearchIndexer.exe": "trusted",
+    "conhost.exe": "trusted",
+    "dwm.exe": "trusted",
+    "chrome.exe": "trusted",
+    "firefox.exe": "trusted",
+    "msedge.exe": "trusted",
+    "powershell.exe": "abuse_prone",
+    "cmd.exe": "abuse_prone",
+    "wscript.exe": "abuse_prone",
+    "cscript.exe": "abuse_prone",
+    "mshta.exe": "abuse_prone",
+    "regsvr32.exe": "abuse_prone",
+    "rundll32.exe": "abuse_prone",
+    "certutil.exe": "abuse_prone",
+    "bitsadmin.exe": "abuse_prone",
+}
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Analyze host telemetry for suspicious behavior.")
@@ -68,6 +97,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--label-column", default="label", help="Label column for evaluation. Use an empty string to disable.")
     parser.add_argument("--contamination", type=float, default=0.2, help="Expected anomaly fraction for unsupervised methods.")
     parser.add_argument("--random-state", type=int, default=42, help="Random seed for reproducible runs.")
+    parser.add_argument(
+        "--ensemble",
+        default="vote",
+        choices=["vote", "weighted"],
+        help="vote: majority of the four core methods. weighted: precision-calibrated vote including the progression and reputation signals.",
+    )
+    parser.add_argument(
+        "--reputation-csv",
+        default=None,
+        help="Optional CSV with columns process_name and reputation to extend the built-in process reputation list.",
+    )
     return parser
 
 
@@ -184,8 +224,141 @@ def random_forest_detector(scaled_features: pd.DataFrame, truth: pd.Series | Non
     return report
 
 
-def build_report(dataframe: pd.DataFrame, contamination: float, random_state: int, label_column: str | None) -> pd.DataFrame:
+def _window_stage(row: pd.Series) -> int:
+    """Classify one telemetry window into a ransomware-progression stage.
+
+    1 = reconnaissance / staging (mass renames, extension churn, unsigned code)
+    2 = defense tampering (shadow-copy modification)
+    3 = encryption / destruction (high entropy or heavy writes, on a rename/write
+        activity base that looks like mass file modification)
+    """
+    recon = (
+        row["file_rename_count"] >= 80
+        or row["suspicious_extension_changes"] >= 25
+        or row["unsigned_binary"] >= 1
+    )
+    tamper = row["shadow_copy_events"] >= 1
+    encrypt = (
+        (row["entropy_score"] >= 7.4 or row["disk_write_mb"] >= 250)
+        and (row["file_rename_count"] >= 80 or row["file_write_count"] >= 100)
+    )
+    if encrypt:
+        return 3
+    if tamper:
+        return 2
+    if recon:
+        return 1
+    return 0
+
+
+def detect_progression(dataframe: pd.DataFrame) -> pd.DataFrame:
+    """Score the canonical ransomware trajectory *across* windows, per host.
+
+    The per-window detectors score snapshots; ransomware is a progression. For each
+    host the windows are walked in time order and the set of stages seen so far is
+    tracked. A stage only counts once its predecessor has appeared, so
+    encryption-at-window-k is only part of a trajectory when recon and tampering
+    were observed earlier on the same host. progression_flag stays set from the
+    moment a full 1->2->3 path completes.
+    """
+    report = pd.DataFrame(index=dataframe.index)
+    report["window_stage"] = 0
+    report["progression_flag"] = 0
+
+    for _, group in dataframe.groupby("host"):
+        group = group.sort_values("timestamp")
+        stages_seen: set[int] = set()
+        for index in group.index:
+            row = group.loc[index]
+            stage = _window_stage(row)
+            if stage == 1:
+                stages_seen.add(1)
+            elif stage == 2 and 1 in stages_seen:
+                stages_seen.add(2)
+            elif stage == 3 and {1, 2} <= stages_seen:
+                stages_seen.add(3)
+            report.at[index, "window_stage"] = stage
+            report.at[index, "progression_flag"] = 1 if 3 in stages_seen else 0
+    return report
+
+
+def enrich_process_reputation(dataframe: pd.DataFrame, reputation_csv: str | None = None) -> pd.DataFrame:
+    """Attach a reputation label to each window's process.
+
+    Built-in map plus an optional external CSV (columns process_name, reputation)
+    that overrides or extends it. The output columns are process_reputation and
+    reputation_flag (1 when the process is in the abuse-prone bucket).
+    """
+    mapping = {name.lower(): reputation for name, reputation in BUILTIN_REPUTATION.items()}
+    if reputation_csv:
+        table = pd.read_csv(reputation_csv)
+        required = {"process_name", "reputation"}
+        missing = required - set(table.columns)
+        if missing:
+            raise ValueError(f"Reputation CSV missing columns: {sorted(missing)}")
+        mapping.update(
+            {
+                str(name).strip().lower(): str(reputation).strip().lower()
+                for name, reputation in zip(table["process_name"], table["reputation"])
+            }
+        )
     report = dataframe.copy()
+    process_names = report["process_name"].astype(str).str.strip().str.lower()
+    report["process_reputation"] = process_names.map(lambda name: mapping.get(name, "unknown"))
+    report["reputation_flag"] = (report["process_reputation"] == "abuse_prone").astype(int)
+    return report
+
+
+def _ensemble_weights(report: pd.DataFrame, truth: pd.Series | None) -> dict:
+    """Precision-based weights for the calibrated ensemble.
+
+    Each method is weighted by how precise it was on the training labels; a method
+    that never fired, or one with no labels to learn from, is given a small floor so
+    it can still cast a weak vote rather than being zeroed out of existence.
+    """
+    method_columns = [
+        "rule_flag",
+        "isolation_forest_flag",
+        "lof_flag",
+        "random_forest_flag",
+        "progression_flag",
+        "reputation_flag",
+    ]
+    weights: dict = {}
+    for method in method_columns:
+        if truth is not None:
+            weight = precision_score(truth, report[method], zero_division=0)
+        else:
+            weight = 1.0
+        weights[method] = max(weight, 0.05) if truth is not None else weight
+    return weights
+
+
+def build_calibrated_ensemble(report: pd.DataFrame, truth: pd.Series | None) -> pd.DataFrame:
+    """Weighted combination of all six detectors.
+
+    Weights come from per-method precision on the labels (or are uniform without
+    labels). A window is suspicious when the precision-weighted share of voting
+    methods reaches half the total weight — a weighted majority.
+    """
+    weights = _ensemble_weights(report, truth)
+    method_columns = list(weights.keys())
+    weighted_score = sum(report[method].astype(float) * weight for method, weight in weights.items())
+    total_weight = sum(weights.values())
+    report["ensemble_weighted_score"] = (weighted_score / total_weight).round(4)
+    report["is_suspicious_calibrated"] = (weighted_score >= 0.5 * total_weight).astype(int)
+    return report
+
+
+def build_report(
+    dataframe: pd.DataFrame,
+    contamination: float,
+    random_state: int,
+    label_column: str | None,
+    ensemble: str = "vote",
+    reputation_csv: str | None = None,
+) -> pd.DataFrame:
+    report = enrich_process_reputation(dataframe, reputation_csv)
     report.insert(0, "row_id", range(1, len(report) + 1))
 
     truth = None
@@ -195,14 +368,20 @@ def build_report(dataframe: pd.DataFrame, contamination: float, random_state: in
 
     scaled_features = scale_features(report)
     rule_report = rule_based_detector(report)
+    progression_report = detect_progression(report)
     isolation_report = isolation_forest_detector(scaled_features, contamination, random_state)
     lof_report = lof_detector(scaled_features, contamination)
     rf_report = random_forest_detector(scaled_features, truth, random_state)
 
-    report = pd.concat([report, rule_report, isolation_report, lof_report, rf_report], axis=1)
+    report = pd.concat([report, rule_report, progression_report, isolation_report, lof_report, rf_report], axis=1)
     vote_columns = ["rule_flag", "isolation_forest_flag", "lof_flag", "random_forest_flag"]
     report["ensemble_votes"] = report[vote_columns].sum(axis=1)
-    report["is_suspicious"] = (report["ensemble_votes"] >= 2).astype(int)
+
+    if ensemble == "weighted":
+        report = build_calibrated_ensemble(report, truth)
+        report["is_suspicious"] = report["is_suspicious_calibrated"]
+    else:
+        report["is_suspicious"] = (report["ensemble_votes"] >= 2).astype(int)
     report["alert_reason"] = report.apply(build_alert_reason, axis=1)
     return report
 
@@ -213,12 +392,16 @@ def build_alert_reason(row: pd.Series) -> str:
     reasons: List[str] = []
     if row["rule_flag"] == 1:
         reasons.append(row["rule_reason"])
+    if row["progression_flag"] == 1:
+        reasons.append("full ransomware progression observed on this host (recon -> tampering -> encryption)")
     if row["isolation_forest_flag"] == 1:
         reasons.append("Isolation Forest flagged an unusual telemetry pattern")
     if row["lof_flag"] == 1:
         reasons.append("Local Outlier Factor detected a sparse telemetry neighborhood")
     if row["random_forest_flag"] == 1:
         reasons.append("Random Forest classified the telemetry window as suspicious")
+    if row["reputation_flag"] == 1:
+        reasons.append(f"abuse-prone process ({row['process_name']})")
     return "; ".join(dict.fromkeys(reason for reason in reasons if reason))
 
 
@@ -226,6 +409,8 @@ def compute_metrics(report: pd.DataFrame) -> Dict[str, Dict[str, float]]:
     truth = report["ground_truth"]
     metric_targets = {
         "rule_based": report["rule_flag"],
+        "progression": report["progression_flag"],
+        "reputation": report["reputation_flag"],
         "isolation_forest": report["isolation_forest_flag"],
         "local_outlier_factor": report["lof_flag"],
         "random_forest": report["random_forest_flag"],
@@ -349,7 +534,14 @@ def main() -> None:
     plot_dir = Path(args.plot_dir)
 
     dataframe = load_dataset(input_path)
-    report = build_report(dataframe, args.contamination, args.random_state, label_column)
+    report = build_report(
+        dataframe,
+        args.contamination,
+        args.random_state,
+        label_column,
+        ensemble=args.ensemble,
+        reputation_csv=args.reputation_csv,
+    )
 
     metrics = None
     if label_column and "ground_truth" in report.columns:

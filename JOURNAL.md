@@ -106,3 +106,26 @@ ransomware-shaped row and a benign one, the RF flag/score consistency, the ensem
 - Sequence modeling across adjacent windows — right now every window is judged on its
   own, but ransomware is a *progression* and the ordering carries signal I'm throwing
   away.
+
+## Feature pass: progression, reputation, calibrated ensemble
+
+Took on three things from the "next" list.
+
+- **Progression.** This is the one I cared most about. Ransomware is a sequence, and
+  scoring windows in isolation throws that away. The detector walks each host's
+  windows in time and only lets a stage count once its predecessor appeared - so
+  encryption after recon and shadow-copy tampering is a trajectory, and encryption
+  out of nowhere is just a loud window. The test I was careful about: a host that
+  hits stage 3 *before* stage 1 is not flagged, because that's not how the attack
+  unfolds.
+- **Reputation.** A small hand-maintained list of abuse-prone binaries, weighted not
+  as malware but as prior. Extendable via CSV. The honest note is that a name-based
+  map is only as good as the list; signer enrichment would be the real upgrade.
+- **Calibrated ensemble.** --ensemble weighted weights each detector by its
+  precision on the labels. On the sample it is deliberately more conservative than
+  the vote (F1 ~0.75 vs 0.89, recall 0.60 vs 0.80) - precision-weighting mostly hands
+  the say to the rules, which are perfect when they fire. That's a feature, not a
+  bug: it's the knob a defender with a triage queue wants to turn.
+
+Test count is up to 23. The four-method vote's metrics are unchanged, which is what I
+wanted - the new stuff adds information without rewriting the old comparison.

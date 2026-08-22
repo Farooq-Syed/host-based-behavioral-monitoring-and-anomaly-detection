@@ -3,8 +3,12 @@
 **Farooq Syed** · M.S. in Computer and Information Security Systems, Eastern Illinois University · 2023
 
 *Independent research portfolio, prepared as part of a PhD application in cybersecurity.
-Developed with AI coding assistance; all methods, experiments, and findings were
-directed, reviewed, and verified by the author.*
+Developed with AI coding assistance; the author chose the telemetry design, detector
+comparisons, evaluation setup, debugging priorities, and final claims, and verified
+the final code and write-up.*
+
+See [REFERENCES.md](REFERENCES.md) for the external method and threat-model citations
+most relevant to this project.
 
 ## Abstract
 

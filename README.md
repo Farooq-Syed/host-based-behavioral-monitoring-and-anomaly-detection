@@ -6,6 +6,10 @@
 
 This project analyzes host telemetry windows to detect suspicious behavior associated with ransomware-style activity, destructive scripting, and resource abuse. It combines rule-based detection with machine learning to compare how different methods behave on the same telemetry stream.
 
+Developed with AI coding assistance; the author chose the telemetry design, detection
+comparisons, evaluation framing, debugging direction, and final interpretation of the
+results.
+
 ## Results at a glance
 
 ![Results panel](assets/results_panel.png)
@@ -13,7 +17,8 @@ This project analyzes host telemetry windows to detect suspicious behavior assoc
 Four detectors score each telemetry window and vote. On the sample the ensemble
 recovers recall (0.80) over any single unsupervised method (0.53) while holding
 precision at 1.00. See [PAPER.md](PAPER.md) for the method and [JOURNAL.md](JOURNAL.md)
-for the development notes.
+for the development notes. For method and threat-model citations, see
+[REFERENCES.md](REFERENCES.md).
 
 ## Features
 
@@ -198,6 +203,12 @@ Ensemble confusion matrix:
 ## Why This Project Matters
 
 This project is meant to look more like host-based detection engineering than a basic system monitor. It focuses on security-relevant resource and file activity patterns, which makes it useful for ransomware-style early warning and suspicious process monitoring.
+
+## Authorship and AI use
+
+- The project framing, telemetry schema, comparisons, and claims are the author's.
+- AI assistance was used for coding support and drafting help.
+- The author reviewed, edited, tested, and verified the final code and write-up.
 
 ## Next Steps
 

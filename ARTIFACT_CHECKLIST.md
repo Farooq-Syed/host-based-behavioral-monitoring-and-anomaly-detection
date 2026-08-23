@@ -1,85 +1,93 @@
 # Artifact Checklist — Reproduction Guide
 
-A reviewer can reproduce every result in this repository by following the steps below. All commands assume a Unix-like shell (PowerShell on Windows, bash on Linux/macOS).
+A reviewer can reproduce every result in this repository by following the steps below. All
+commands assume a Unix-like shell (PowerShell on Windows, bash on Linux/macOS), run from the
+repo root.
 
 ## Environment
 
-- Python 3.11 or 3.12 (the CI workflow runs 3.12; the project is tested on 3.11)
-- OS: Windows 11 (development), Ubuntu (CI) — the pipeline is OS-agnostic beyond the Python stdlib
-- Dependencies are pinned in `requirements.txt`; use them exactly to reproduce the reported numbers
+- Python 3.11 or 3.12 (CI runs 3.12; project tested on 3.11)
+- OS: Windows 11 (development), Ubuntu (CI) — pipeline is OS-agnostic beyond Python stdlib
+- Dependencies pinned in `requirements-lock.txt`; use exactly these to reproduce the
+  reported numbers (a prior sklearn/CV version drift changed the sample F1 1.00 → 0.97)
 
 ## Reproduction Commands
 
+### Synthetic (development-only evidence)
+
 ```bash
-# 1. Clone and enter the repo
-git clone https://github.com/Farooq-Syed/host-based-behavioral-monitoring-and-anomaly-detection.git
-cd host-based-behavioral-monitoring-and-anomaly-detection
-
-# 2. Install pinned dependencies
-python -m pip install -r requirements.txt
-
-# 3. Generate the larger synthetic dataset (optional — the 40-row sample ships with the repo)
+python -m pip install -r requirements-lock.txt
 python generate_telemetry.py --rows 2000 --seed 42 --output data/synthetic_host_telemetry.csv
+python monitor.py                                  # 40-row sample
+python monitor.py --input data/synthetic_host_telemetry.csv   # 2,000-row set
+python monitor.py --ensemble weighted              # calibrated ensemble variant
+```
 
-# 4. Run the monitor on the 40-row sample (default)
-python monitor.py
+### Real-data RADAR (publication evidence)
 
-# 5. Run the monitor on the 2,000-row synthetic set
-python monitor.py --input data/synthetic_host_telemetry.csv
+The raw RADAR archive (Zenodo `10.5281/zenodo.14564541`, MD5
+`f82b0dfee5332448de9a03ae3f7cc911`) must be present. `scripts/reproduce_radar.py` downloads
+nothing but expects the extracted raw CSVs under `data/raw/JamilIsp-RADAR-cb0c4c2/`; it
+rebuilds the numeric windows file and produces the family-tagged counterpart, and records
+raw-file hashes into `radar_manifest.json`:
 
-# 6. Run the precision-calibrated ensemble variant
-python monitor.py --ensemble weighted
+```bash
+# After extracting RADAR-v0.0.1-beta.zip -> data/raw/
+python scripts/reproduce_radar.py
+# -> data/radar_real_windows.csv            (numeric-only)
+# -> data/radar_real_windows_with_family.csv (adds family + run columns)
+# -> radar_manifest.json                     (frozen preprocessing definition)
+```
 
-# 7. Run the test suite
-python -m unittest discover -s tests -v
+Strict leave-one-family-out evaluation (7 held-out families, contamination tuned on an
+inner validation split, full comparator ablation, 95% CI, recall@FPR):
+
+```bash
+python radar_strict_eval.py --input data/radar_real_windows_with_family.csv \
+    --label-column label --split family --family-column family \
+    --metrics-output results/radar_strict_family_eval.json
+```
+
+Development-era random-CV (in-distribution reference):
+
+```bash
+python real_data_eval.py --input data/radar_real_windows.csv --label-column label \
+    --contamination 0.13 --metrics-output results/radar_real_eval.json
+```
+
+### Tests
+
+```bash
+python -m pytest -q         # 35 passed
 ```
 
 ## Expected Output Files
 
-After `python monitor.py` (default sample input):
+Real-data strict split (`radar_strict_eval.py`):
+- `results/radar_strict_family_eval.json` — pooled comparators (95% CI) + per-family
 
-| File | Contents |
-|------|----------|
-| `output/alerts_report.csv` | Per-window predictions from all detectors |
-| `output/summary.json` | Row count, host count, top flagged hosts, sample flagged windows |
-| `output/metrics.json` | Precision, recall, F1, accuracy for every method |
-| `output/plots/disk_writes_vs_renames.png` | Scatter plot colored by ensemble verdict |
-| `output/plots/method_comparison.png` | Bar chart of flagged windows per method |
-| `output/plots/f1_comparison.png` | Bar chart of F1 scores per method |
-| `output/plots/ensemble_confusion_matrix.png` | Confusion matrix for the ensemble |
+Real-data random-CV (`real_data_eval.py`):
+- `results/radar_real_eval.json`
 
-After `python generate_telemetry.py --rows 2000`:
-
-| File | Contents |
-|------|----------|
-| `data/synthetic_host_telemetry.csv` | 2,000-row synthetic telemetry dataset |
+Synthetic (`monitor.py`):
+- `output/alerts_report.csv`, `output/summary.json`, `output/metrics.json`
 
 ## Artifact Checklist
 
-- [x] **README.md** — Project overview, results table, usage examples, detection logic summary
-- [x] **PAPER.md** — Full write-up framing the research question, methods, results, and limitations
-- [x] **JOURNAL.md** — Development journal documenting bugs found and fixed, design decisions, and the 14-to-23 test expansion
-- [x] **PUBLICATION_NOTES.md** — Publication-readiness notes, core claim, reviewer risks, venue fit
-- [x] **REFERENCES.md** — Citations for Isolation Forest, LOF, Random Forest, MITRE ATT&CK; AI-use disclosure
-- [x] **Tests passing** — 24 tests across 4 test files (see Summary below)
-- [x] **LICENSE** — Non-commercial personal-use license (Copyright 2026 Farooq Syed)
-- [x] **CI workflow** — `.github/workflows/ci.yml` runs on push/PR, installs deps, runs `unittest discover`
-- [x] **Data generator** — `generate_telemetry.py` produces larger synthetic datasets with overlapping distributions and label noise
-- [ ] **docs/real_dataset_guide.md** — Referenced in `generate_telemetry.py` docstring but does not exist (only `docs/DATA.md` exists)
+- [x] **README.md** — real-data RADAR result foregrounded (strict family split), synthetic
+      marked development-only
+- [x] **PAPER.md** — abstract + §5 report the strict leave-one-family-out result
+- [x] **REAL_DATA_RESULTS.md** — random-CV (development) + strict-split (publication) tables
+- [x] **PUBLICATION_NOTES.md** — narrow claim, reviewer risks, venue fit
+- [x] **radar_manifest.json** — frozen window/label/feature/seed definition + raw hashes
+- [x] **requirements-lock.txt** — pinned versions
+- [x] **scripts/reproduce_radar.py** — reproduces windows + family-tagged data + manifest
+- [x] **Tests passing** — 35 tests (adds `test_radar_strict_eval.py`, adapter family test)
+- [x] **LICENSE**, **CI workflow**, **REFERENCES.md**
 
-## Test Summary
+## Loose Ends
 
-| File | Tests | Scope |
-|------|-------|-------|
-| `tests/test_smoke.py` | 1 | End-to-end CLI run produces output files |
-| `tests/test_detection.py` | 8 | `normalize_label` synonyms, rule detector triggers, RF flag/score consistency, ensemble vote rule, small-imbalanced-data crash guard |
-| `tests/test_generator.py` | 5 | Schema, both labels present, seed reproducibility, class overlap, no negative values |
-| `tests/test_advanced_detection.py` | 10 | Progression trajectory (in-order, out-of-order, benign), reputation enrichment (abuse-prone, trusted, unknown, CSV extension), calibrated ensemble (runs, core-threshold anchoring, weights prefer precise methods) |
-| **Total** | **24** | All pass on Python 3.11/3.12 (CI) |
-
-## Loose Ends Noted in the Repo
-
-- The README metrics table shows Random Forest at F1 = 1.00 on the sample; the JOURNAL records a run producing 0.97 from the same code due to sklearn/CV version drift. Pin `requirements.txt` exactly to reproduce the README numbers.
-- `generate_telemetry.py` docstring references `docs/real_dataset_guide.md`; the actual file is `docs/DATA.md`.
-- `data/synthetic_host_telemetry_eval.csv` is an identical copy of `data/synthetic_host_telemetry.csv` (2,000 rows, same seed 42). The `output/metrics.json` in the repo was produced from the eval copy.
-- The tracked evaluation copy has SHA-256 `4fdb59fe1b2f5cbe14a5ce1f5a5efb6a55f4139e4b580d973ee4ed5a7bcc04f4`.
+- `generate_telemetry.py` docstring references `docs/real_dataset_guide.md`; the real file is
+  `docs/DATA.md`.
+- RADAR raw CSVs are large (goodware ~126 MB) and are gitignored under `data/raw/`; only the
+  windowed CSVs and the manifest are committed.

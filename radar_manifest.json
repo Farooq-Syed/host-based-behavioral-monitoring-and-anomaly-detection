@@ -1,0 +1,48 @@
+{
+  "description": "Frozen RADAR preprocessing manifest for HBBMAAD. Reproduces data/radar_real_windows.csv and (with --include-metadata) the family-tagged variant. Raw-file hashes require the gated Zenodo download (DOI 10.5281/zenodo.14564541); the rest is fixed below.",
+  "frozen_on": "2026-08-23",
+  "dataset": {
+    "name": "RADAR: A Realistic Dataset for Advancing Ransomware Detection",
+    "authors": "Ispahany, Islam, Khan, Islam (Charles Sturt University)",
+    "zenodo_doi": "10.5281/zenodo.14564541",
+    "license": "CC BY 4.0",
+    "families": [
+      "Akira",
+      "BlackBasta",
+      "CyberVolk",
+      "LockBit",
+      "Lynx",
+      "Medusa",
+      "Meow"
+    ],
+    "raw_file_sha256": {
+      "goodware-logs.csv": "9eec9bd8609a9305b0ec98a13f1d831e9de94b12d71bf8127e34a614134f7661",
+      "ransomware-logs-raw.zip": "158f519481271ed7659e8f80593b57a5e15f2b957923d42a509ff8519025190f",
+      "radar_zip_md5": "f82b0dfee5332448de9a03ae3f7cc911"
+    },
+    "num_ransomware_samples": 62,
+    "url": "https://zenodo.org/records/14564541"
+  },
+  "window": {
+    "window_minutes": 5,
+    "goodware_sample_rows": 400000,
+    "label_rule": "goodware: target-class (0/1); ransomware CSVs: forced to 1",
+    "host_rule": "user.domain \\ user.name (fallback '-\\-')",
+    "random_state": 42
+  },
+  "features": [
+    "process_create_count",
+    "file_create_count",
+    "file_delete_count",
+    "file_rename_like",
+    "network_connections",
+    "registry_events",
+    "module_loads",
+    "unsigned_process_events",
+    "suspicious_extension_events",
+    "shadow_copy_events",
+    "event_count"
+  ],
+  "reproduce_windows": "python sysmon_adapter.py --goodware data/raw/JamilIsp-RADAR-cb0c4c2/Raw logs/goodware/extracted/goodware-logs.csv --ransomware <62 family CSVs> --window-minutes 5 --goodware-sample 400000 --output data/radar_real_windows.csv",
+  "reproduce_metadata_windows": "same as above with --include-metadata, output data/radar_real_windows_with_family.csv"
+}

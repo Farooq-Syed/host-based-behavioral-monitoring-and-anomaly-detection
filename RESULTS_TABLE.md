@@ -1,8 +1,26 @@
 # Results Table — Headline Metrics
 
-All metrics are **precision / recall / F1** unless noted. The strongest dataset story is the
-2,000-row synthetic set (see *Dataset notes* below). Methods are listed in the order they
-appear in the pipeline.
+All metrics are **precision / recall / F1** unless noted. The **publication story is the
+real-data RADAR evaluation** (see *RADAR real-data* below); the synthetic tables are
+development-only evidence.
+
+## RADAR real-data — strict leave-one-family-out (`results/radar_strict_family_eval.json`)
+
+7 held-out families, test = held-out family attacks + 20% benign split (benign excluded from
+training); contamination tuned on an inner validation split. Pooled 95% CI.
+
+| Method | F1 | Precision | Recall | AUC | Recall @ 1% FPR |
+|--------|---:|----------:|-------:|----:|----------------:|
+| Random Forest (supervised) | **0.400** | 0.347 | 0.531 | 0.809 | 0.200 |
+| Ensemble (vote) | 0.407 | 0.388 | 0.462 | — | — |
+| Isolation Forest | 0.324 | 0.256 | 0.490 | — | — |
+| Ensemble (weighted) | 0.219 | 0.971 | 0.125 | — | — |
+| Local Outlier Factor | 0.195 | 0.152 | 0.296 | — | — |
+| Rule-based | 0.071 | 0.714 | 0.039 | — | — |
+| Progression | 0.000 | — | — | — | — |
+
+Per-family (supervised RF): BlackBasta 0.511, Akira 0.514, LockBit 0.480, Medusa 0.464,
+Lynx 0.429, CyberVolk 0.200, Meow 0.200.
 
 ## 40-Row Sample (`data/sample_host_telemetry.csv`)
 

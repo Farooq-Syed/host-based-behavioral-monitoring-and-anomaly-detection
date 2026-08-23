@@ -1,0 +1,7 @@
+# Locked runtime environment for HBBMAAD (verified 2026-08-23).
+# Use exactly these to reproduce the reported numbers (a prior sklearn/CV version
+# drift changed the sample F1 1.00 -> 0.97; pinning avoids that).
+numpy==2.2.6
+pandas==3.0.3
+matplotlib==3.10.9
+scikit-learn==1.8.0

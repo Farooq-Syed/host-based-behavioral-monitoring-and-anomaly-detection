@@ -126,6 +126,15 @@ def _window_rows(frame: pd.DataFrame, window_minutes: int) -> pd.DataFrame:
     return out[["timestamp", "host", "process_name"] + FEATURE_ORDER + ["label"]]
 
 
+def _family_from_name(name: str) -> str:
+    """Derive a family tag from a raw CSV filename, e.g. 'Akira-...csv' -> 'Akira'."""
+    stem = Path(name).stem
+    for fam in ("BlackBasta", "CyberVolk", "Akira", "LockBit", "Medusa", "Lynx", "Meow"):
+        if fam.lower() in stem.lower():
+            return fam
+    return "Goodware"
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--goodware", required=True)
@@ -133,23 +142,37 @@ def main() -> None:
     ap.add_argument("--window-minutes", type=int, default=5)
     ap.add_argument("--goodware-sample", type=int, default=0, help="Cap goodware rows (0 = all).")
     ap.add_argument("--output", required=True)
+    ap.add_argument("--include-metadata", action="store_true",
+                    help="Attach a 'family' column (from the source CSV filename) and a "
+                         "'run' id so strict family/session hold-out evaluation is possible. "
+                         "Off by default to keep outputs byte-identical to the committed file.")
     args = ap.parse_args()
 
     good = load_sysmon(Path(args.goodware))
     if args.goodware_sample and len(good) > args.goodware_sample:
         good = good.sample(args.goodware_sample, random_state=42)
     windows = _window_rows(good, args.window_minutes)
+    if args.include_metadata:
+        windows["family"] = "Goodware"
+        windows["run"] = f"goodware:{_family_from_name(args.goodware)}"
 
     for path in args.ransomware:
         rw = load_sysmon(Path(path))
         rw["label"] = 1
-        windows = pd.concat([windows, _window_rows(rw, args.window_minutes)], ignore_index=True)
+        fam = _family_from_name(path)
+        block = _window_rows(rw, args.window_minutes)
+        if args.include_metadata:
+            block["family"] = fam
+            block["run"] = f"ran:{fam}:{Path(path).stem}"
+        windows = pd.concat([windows, block], ignore_index=True)
 
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
     windows.to_csv(out, index=False)
     print(f"Wrote {len(windows)} real Sysmon windows -> {out}")
     print(f"  benign windows: {(windows['label'] == 0).sum()}  ransomware windows: {(windows['label'] == 1).sum()}")
+    if args.include_metadata:
+        print(f"  families: {windows['family'].value_counts().to_dict()}")
     print(f"  features: {FEATURE_ORDER}")
 
 

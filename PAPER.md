@@ -29,6 +29,16 @@ cross-validation was consolidated from two passes into one (halving its training
 cost and making its flag and score consistent by construction), and the fold count
 became adaptive so the pipeline no longer fails on class-imbalanced inputs.
 
+The headline evidence is now the **real-data evaluation on RADAR**, a public Sysmon
+corpus of real ransomware families vs. goodware (CC BY 4.0). Under a
+**leave-one-family-out** strict split — entire families held out, benign from
+held-out runs excluded from training, and contamination tuned on an inner validation
+split — supervised Random Forest beats every unsupervised baseline (RF F1 0.40 /
+AUC 0.81 vs. Isolation Forest 0.32 / LOF 0.20), but the margin is **sensitive to
+family shift** (F1 0.51 for well-sampled families down to 0.20 for the smallest).
+The earlier synthetic result (ensemble F1 ≈ 0.89) is now development-only evidence;
+the random-CV real-data number (0.515) is in-distribution-optimistic.
+
 ## 1. The question
 
 A defender watching host telemetry for ransomware has a menu of detection
@@ -118,7 +128,60 @@ preceded by quieter staging. The reputation detector, similarly, is modest on th
 sample (F1 ≈ 0.38): the built-in list is a weak prior, not a detector, and it is
 deliberately weighted that way in the calibrated ensemble.
 
-## 5. What the audit of my own harness found
+> The results in §4 are **development-only synthetic evidence**. The publication
+> evidence is the real-data evaluation on RADAR in §5.
+
+## 5. Real-data evaluation on RADAR (publication evidence)
+
+The synthetic comparison validated the pipeline but not real-world detection. RADAR
+(Zenodo DOI `10.5281/zenodo.14564541`, CC BY 4.0) ships **raw Sysmon logs** of real
+ransomware families (Akira, BlackBasta, LockBit, Medusa, Lynx, CyberVolk, Meow) plus
+goodware. `sysmon_adapter.py` aggregates these into per-(host, 5-minute) windows over
+the ten Sysmon-recoverable event-type features; the final comparative stack runs on
+those windows (Sysmon does not expose CPU/memory/entropy, so the full 11-feature
+synthetic model is not derivable here).
+
+### Strict protocol
+
+RADAR runs are **pure** — a run is either a goodware execution or a single ransomware
+family — so random 5-fold CV mixes family/session identity across train and test and
+overstates performance. `radar_strict_eval.py` instead holds out **entire families**:
+the test pool is a held-out family's attacks plus a 20% benign (goodware) split, and no
+benign from the held-out runs enters training. `contamination` is tuned on an **inner
+validation split**, never from the known ~13% test prevalence. All comparators run on
+identical fold geometry; metrics are pooled mean ± 95% CI across families.
+
+### Leave-one-family-out results (7 families)
+
+| comparator | F1 (95% CI) | precision | recall | AUC | recall @ 1% FPR |
+|---|:--:|:--:|:--:|:--:|:--:|
+| Random forest (supervised) | **0.400 (±0.13)** | 0.347 | 0.531 | 0.809 | 0.200 |
+| Unweighted vote | 0.407 (±0.13) | 0.388 | 0.462 | — | — |
+| Isolation Forest | 0.324 (±0.11) | 0.256 | 0.490 | — | — |
+| Weighted ensemble | 0.219 (±0.06) | 0.971 | 0.125 | — | — |
+| LOF | 0.195 (±0.10) | 0.152 | 0.296 | — | — |
+| Rule-based | 0.071 (±0.08) | 0.714 | 0.039 | — | — |
+| Progression | 0.000 | — | — | — | — |
+
+Per held-out family (supervised RF): BlackBasta F1 0.511 / AUC 0.829; Akira 0.514 /
+0.808; LockBit 0.480 / 0.796; Medusa 0.464 / 0.806; Lynx 0.429 / 0.861; CyberVolk
+0.200 / 0.741; Meow 0.200 / 0.820.
+
+### Reading
+
+On **unseen families** the supervised model beats every unsupervised baseline
+(RF F1 0.40 / AUC 0.81 vs. IF 0.32 / LOF 0.20), and the precision-oriented weighted
+ensemble reaches 0.97 precision. But the margin is **sensitive to family shift**: F1
+falls from ~0.51 for the well-sampled families (BlackBasta, Akira, LockBit) to 0.20
+for the smallest (CyberVolk 37, Meow 16 windows), and RF recall at a 1% FPR budget is
+only 0.20. The progression comparator scores 0.000 because RADAR's per-run windows are
+too short to support the recon→tamper→encrypt trajectory; it is reported as a
+fair-evaluation **omission** rather than shoehorned. The narrow defensible claim:
+**supervised detection beats unsupervised baselines on real RADAR Sysmon windows, but
+the margin is sensitive to family/session shift, and the random-CV number (0.515) is
+in-distribution-optimistic.**
+
+## 6. What the audit of my own harness found
 
 Three findings came out of checking the evaluation code, and each is worth keeping
 on the record.
@@ -142,27 +205,37 @@ verified to have no effect: cross-validated predictions on scaled and unscaled
 features were byte-for-byte identical. The scaling was left in place and the caveat
 recorded; it would matter only if a scale-sensitive estimator were introduced.
 
-## 6. Limitations
+## 7. Limitations
 
-- The dataset is small and synthetic; the metrics validate the pipeline, not
+- The synthetic results are development-only evidence; they validate the pipeline, not
   real-world detection rates.
-- The progression detector is a hand-built stage rule, not a learned model. It
-  encodes my assumption about the canonical order rather than discovering it.
+- The real-data result is on a 4,300-window subset of RADAR; several families are small
+  (CyberVolk 37, Meow 16 windows), so their held-out F1 estimates carry wide confidence
+  intervals, and two families' F1 values are within noise of each other.
+- RADAR runs are lab-generated and pure (a run is either goodware or one family), so the
+  family split is a fair *cross-family* test but is not a live-enterprise deployment.
+- Sysmon does not expose CPU, memory, or raw file entropy; the evaluation runs on the
+  Sysmon-recoverable event-type features only.
+- The progression detector could not be evaluated fairly on RADAR (per-run windows too
+  short for a full recon→tamper→encrypt trajectory) and is reported as an omission.
+- The progression detector is a hand-built stage rule, not a learned model.
 - The weighted ensemble's weights come from training-set precision and are not
   recalibrated on a holdout set.
-- Unsupervised contamination is a fixed fraction rather than learned from the data.
+- Unsupervised contamination is tuned on an inner validation split, not learned from data.
 
-## 7. Future work
+## 8. Future work
 
 The natural next step is replacing the hand-built stage rule with a real sequence
 model over the trajectory — first transparent features (stage-transition counts),
-then proper sequence models — on a real endpoint dataset. A calibrated combination
-that is validated on holdout data rather than training data, and process signer
-enrichment beyond a name-based map, are both on the list. The input path should
-grow to consume Sysmon-style telemetry so the tool works on real endpoint data
+then proper sequence models — evaluated on a *longer-horizon* real endpoint trace
+(which RADAR's short per-run windows cannot provide). A calibrated combination that is
+validated on holdout data rather than training data, process signer enrichment beyond a
+name-based map, and expanding the real-data coverage to more families with more windows
+(e.g. the RADAR imbalanced/drift sub-datasets) are all on the list. The input path
+should grow to consume Sysmon-style telemetry so the tool works on real endpoint data
 rather than a CSV.
 
-## 8. Conclusion
+## 9. Conclusion
 
 The detectors here are conventional; the project's worth is that it makes their
 disagreement legible and that its evaluation can be trusted. The two additions
@@ -171,4 +244,6 @@ as a sequence rather than a set of loud moments, and the calibrated ensemble let
 it trade precision against recall deliberately instead of by accident. Backing
 each change with a test, and confirming the reported metrics were unchanged where
 they should be, keeps the comparison honest — which is the entire point of a tool
-whose job is to compare.
+whose job is to compare. On the real-data evidence, the honest result is that
+supervised detection beats unsupervised baselines on RADAR but is sensitive to
+family shift — and that is the claim worth defending.

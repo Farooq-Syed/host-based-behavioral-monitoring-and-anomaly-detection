@@ -36,9 +36,28 @@ python real_data_eval.py --input data/radar_real_windows.csv --label-column labe
 ```
 
 The committed output is `data/radar_real_windows.csv` (4,283 real windows) and
-`results/radar_real_eval.json`.
+`results/radar_real_eval.json`. The frozen preprocessing definition is in
+`radar_manifest.json`. The reproducible rebuild (all 62 ransomware samples) yields 4,300
+windows (3,740 benign, 560 ransomware); the strict-split results report this reproducible
+set.
 
-## Results (real data)
+### Raw inputs and family/session tagging
+
+The RADAR Zenodo record is a single archive (`JamilIsp/RADAR-v0.0.1-beta.zip`,
+MD5 `f82b0dfee5332448de9a03ae3f7cc911`). It contains `Raw logs/goodware/goodware-logs.csv`
+and `Raw logs/ransomware/ransomware-logs-raw.zip` (62 per-sample CSVs across the seven
+families). `scripts/reproduce_radar.py` extracts these, rebuilds the numeric windows file,
+and produces a family-tagged counterpart:
+
+```bash
+python scripts/reproduce_radar.py
+# -> data/radar_real_windows.csv            (numeric-only, byte-compatible)
+# -> data/radar_real_windows_with_family.csv (adds family + run columns)
+```
+
+The family-tagged file is what the strict-split evaluation consumes.
+
+## Results (random 5-fold CV — development-era)
 
 4,283 real Sysmon windows (3,740 benign, 543 ransomware; ~13% attack rate), 5-fold CV.
 
@@ -63,6 +82,53 @@ the event-type window features carry less signal than engineered synthetic featu
   exactly the cost-aware tradeoff the calibrated ensemble is designed for.
 - This is a genuinely harder, honest result and should be **foregrounded** over the
   synthetic 0.89 in the paper and statement.
+
+## Strict split (leave-one-family-out) — the publication headline
+
+The 5-fold random-CV numbers above are **in-distribution** and optimistic: they mix windows
+from the same family/session across train and test. RADAR's runs are pure (a run is either
+a goodware execution or one ransomware family), so the strict protocol below holds out an
+entire family's runs. `radar_strict_eval.py` also tunes `contamination` on an **inner
+validation split** — never from the known 13% test prevalence.
+
+`results/radar_strict_family_eval.json`: 7 held-out families, test = held-out family's
+attacks + a 20% benign (goodware) split (the benign split is excluded from training). 95% CI
+shown. Pooled comparators:
+
+| comparator | F1 (95% CI) | precision | recall | AUC | recall @ 1% FPR |
+|---|:--:|:--:|:--:|:--:|:--:|
+| Random forest (supervised) | **0.400 (±0.13)** | 0.347 | 0.531 | 0.809 | 0.200 |
+| Unweighted vote | 0.407 (±0.13) | 0.388 | 0.462 | — | — |
+| Isolation Forest | 0.324 (±0.11) | 0.256 | 0.490 | — | — |
+| Weighted ensemble | 0.219 (±0.06) | 0.971 | 0.125 | — | — |
+| LOF | 0.195 (±0.10) | 0.152 | 0.296 | — | — |
+| Rule-based | 0.071 (±0.08) | 0.714 | 0.039 | — | — |
+| Progression | 0.000 | — | — | — | — |
+
+Per-held-out-family (supervised RF):
+
+| held-out family | test attacks | F1 | AUC |
+|---|:--:|:--:|:--:|
+| BlackBasta | 128 | 0.511 | 0.829 |
+| Akira | 117 | 0.514 | 0.808 |
+| LockBit | 126 | 0.480 | 0.796 |
+| Medusa | 80 | 0.464 | 0.806 |
+| Lynx | 56 | 0.429 | 0.861 |
+| CyberVolk | 37 | 0.200 | 0.741 |
+| Meow | 16 | 0.200 | 0.820 |
+
+**Reading.** Supervised detection beats every unsupervised baseline **on unseen families**:
+RF F1 0.40 / AUC 0.81 vs IF 0.32 / LOF 0.20, and the precision-oriented weighted ensemble
+reaches 0.97 precision. But the result is **sensitive to family/session shift**: F1 drops
+from ~0.51 for the well-sampled families (BlackBasta, Akira, LockBit) to 0.20 for the
+smallest (CyberVolk 37, Meow 16 windows), and RF recall at a 1% FPR budget is only 0.20.
+The progression comparator scores 0.000 because RADAR's per-run windows are too short to
+support the recon→tamper→encrypt trajectory — it is reported as a fair-evaluation **omission**
+rather than shoehorned.
+
+The narrow, defensible claim: **supervised detection beats unsupervised baselines on real
+RADAR Sysmon windows, but the margin is sensitive to family/session shift, and the
+random-CV number (0.515) is in-distribution-optimistic.**
 
 ## Limitations (stated plainly)
 

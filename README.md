@@ -4,12 +4,15 @@
 > the LANL schema assessment, and the evidence required before reporting operational
 > endpoint performance.
 
-> **Real data now.** The ML comparison also runs on real Sysmon telemetry from the public
-> **RADAR** ransomware dataset (CC BY 4.0): 4,283 real Sysmon windows, where supervised
-> beats unsupervised (RF F1 0.515 / AUC 0.82 vs. IF 0.40 / LOF 0.16) and is *more honest
-> than the synthetic 0.89*. See [REAL_DATA_RESULTS.md](REAL_DATA_RESULTS.md) and
-> `sysmon_adapter.py`. The synthetic result is kept (and its 0.89 is now reported as the
-> easier, self-consistency number, not the headline).
+> **Real data (publication evidence).** The ML comparison runs on real Sysmon telemetry
+> from the public **RADAR** ransomware dataset (CC BY 4.0): a **leave-one-family-out**
+> strict split over 4,300 real Sysmon windows, where supervised Random Forest beats every
+> unsupervised baseline (RF F1 0.40 / AUC 0.81 vs. IF 0.32 / LOF 0.20) but the margin is
+> **sensitive to family shift** (F1 0.51 → 0.20 for the smallest families). Contamination
+> is tuned on an inner validation split, never from the test prevalence. See
+> [REAL_DATA_RESULTS.md](REAL_DATA_RESULTS.md), `sysmon_adapter.py` and
+> `radar_strict_eval.py`. The synthetic 0.89 and the random-CV real 0.515 are kept as
+> development-only / in-distribution numbers, not the headline.
 
 [![CI](https://github.com/Farooq-Syed/host-based-behavioral-monitoring-and-anomaly-detection/actions/workflows/ci.yml/badge.svg)](https://github.com/Farooq-Syed/host-based-behavioral-monitoring-and-anomaly-detection/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)

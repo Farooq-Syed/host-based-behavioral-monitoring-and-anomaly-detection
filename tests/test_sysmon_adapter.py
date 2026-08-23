@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from sysmon_adapter import FEATURE_ORDER, _window_rows, load_sysmon
+from sysmon_adapter import FEATURE_ORDER, _window_rows, load_sysmon, _family_from_name
 
 
 def _build_csv(path: Path) -> None:
@@ -72,3 +72,12 @@ def test_window_rows_schema_and_labels():
         assert rw["event_count"].iloc[0] > gr["event_count"].iloc[0]
         # every numeric feature column is finite
         assert windows[FEATURE_ORDER].notna().all().all()
+
+def test_family_from_name_maps_known_families():
+    assert _family_from_name("Akira-0c662d28268514fabc7129fd.csv") == "Akira"
+    assert _family_from_name("BlackBasta-15560b1e35a3.csv") == "BlackBasta"
+    assert _family_from_name("CyberVolk-1363c88.csv") == "CyberVolk"
+    assert _family_from_name("LockBit-315d043b.csv") == "LockBit"
+    assert _family_from_name("Medusa-05b51b5f.csv") == "Medusa"
+    assert _family_from_name("goodware-logs.csv") == "Goodware"
+    assert _family_from_name("unknown-file.csv") == "Goodware"

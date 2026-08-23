@@ -160,18 +160,47 @@ class ReviewerFixTests(unittest.TestCase):
         self.assertTrue(np.isnan(rse._recall_at_threshold(y_test, prob, float("nan"))))
 
     def test_threshold_from_train_never_uses_test_labels(self):
-        # Validate _threshold_from_train returns a finite, non-NaN value and that the
-        # helper exists and uses only training data (it re-fits an inner split).
+        # Validate _threshold_from_train returns a finite, non-NaN value using only
+        # training data (it re-fits an inner split internally).
         rng = np.random.default_rng(0)
         x = rng.normal(0, 1, (40, 4)); y = np.array([0]*20 + [1]*20)
-        from sklearn.ensemble import RandomForestClassifier
-        from sklearn.preprocessing import StandardScaler
-        rf = RandomForestClassifier(n_estimators=30, class_weight="balanced", random_state=0, n_jobs=-1)
-        rf.fit(StandardScaler().fit_transform(x), y)
-        thr = rse._threshold_from_train(rf, x, y, x, target_fpr=0.01)
+        thr = rse._threshold_from_train(x, y, target_fpr=0.01)
         self.assertFalse(np.isnan(thr))
         self.assertGreaterEqual(thr, 0.0)
         self.assertLessEqual(thr, 1.0)
+
+    def test_threshold_selected_within_fpr_budget(self):
+        # The threshold for a 1% FPR budget must yield validation FPR <= 0.01 (highest
+        # recall subject to the budget), never a threshold above the budget.
+        rng = np.random.default_rng(0)
+        x = rng.normal(0, 1, (200, 6))
+        y = (x[:, 0] + 0.5 * x[:, 1] > 0.1).astype(int)  # weakly separable ~ balanced
+        # Make class imbalance realistic-ish so FPR is meaningful.
+        y = np.where(np.arange(len(y)) % 3 == 0, 1, y)
+        thr = rse._threshold_from_train(x, y, target_fpr=0.01)
+        self.assertFalse(np.isnan(thr))
+        # Validate the chosen threshold's FPR on the same inner-split procedure.
+        from sklearn.model_selection import train_test_split
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.metrics import roc_curve
+        fit_idx, val_idx = train_test_split(np.arange(len(y)), test_size=0.25,
+                                            random_state=0, stratify=y)
+        model = RandomForestClassifier(n_estimators=300, class_weight="balanced", random_state=0, n_jobs=-1)
+        rs = StandardScaler().fit(x[fit_idx])
+        model.fit(rs.transform(x[fit_idx]), y[fit_idx])
+        prob = model.predict_proba(rs.transform(x[val_idx]))[:, 1]
+        pred = (prob >= thr).astype(int)
+        val_fpr = float((pred[y[val_idx] == 0] == 1).mean()) if (y[val_idx] == 0).any() else float("nan")
+        # The selected threshold must not exceed the validated budget.
+        self.assertLessEqual(val_fpr, 0.01 + 1e-6)
+
+    def test_fpr_at_threshold_reports_test_fold_fpr(self):
+        y_test = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        prob = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95])
+        # threshold 0.6 -> only the >0.6 benign (0.5 is benign) none flagged -> FPR 0; recall 0.4/0.5
+        self.assertAlmostEqual(rse._fpr_at_threshold(y_test, prob, 0.6), 0.0)
+        self.assertTrue(np.isnan(rse._fpr_at_threshold(y_test, prob, float("nan"))))
 
 
 if __name__ == "__main__":

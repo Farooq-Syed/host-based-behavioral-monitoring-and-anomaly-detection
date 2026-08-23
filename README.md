@@ -10,9 +10,10 @@
 > unsupervised baseline (RF F1 0.40 / AUC 0.81 vs. IF 0.32 / LOF 0.20) but the margin is
 > **sensitive to family shift** (F1 0.51 → 0.20 for the smallest families). Only
 > contamination is tuned on an inner validation split; the RF decision and ensemble
-> thresholds stay at the fixed 0.5, and RF recall@1%FPR (0.17) uses a threshold picked on
-> validation, never on the test fold. RADAR goodware is one run, so the benign hold-out is
-> a random pool, not a session-disjoint one. See
+> thresholds stay at the fixed 0.5, and RF recall@1%FPR (0.166) uses a cutoff chosen on
+> validation (with FPR ≤ 0.01) so the reported recall stays within budget — the actual
+> test-fold FPR at that cutoff is 0.005, never tuned on the test fold. RADAR goodware is one
+> run, so the benign hold-out is a random pool, not a session-disjoint one. See
 > [REAL_DATA_RESULTS.md](REAL_DATA_RESULTS.md), `sysmon_adapter.py` and
 > `radar_strict_eval.py`. The synthetic 0.89 and the random-CV real 0.515 are kept as
 > development-only / in-distribution numbers, not the headline.

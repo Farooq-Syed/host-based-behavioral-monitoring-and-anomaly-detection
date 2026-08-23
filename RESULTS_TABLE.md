@@ -11,7 +11,7 @@ training); contamination tuned on an inner validation split. Pooled 95% CI.
 
 | Method | F1 | Precision | Recall | AUC | Recall @ 1% FPR |
 |--------|---:|----------:|-------:|----:|----------------:|
-| Random Forest (supervised) | **0.400** | 0.347 | 0.531 | 0.809 | 0.174 |
+| Random Forest (supervised) | **0.400** | 0.347 | 0.531 | 0.809 | 0.166 |
 | Ensemble (vote) | 0.407 | 0.388 | 0.462 | — | — |
 | Isolation Forest | 0.324 | 0.256 | 0.490 | — | — |
 | Ensemble (weighted) | 0.208 | 0.967 | 0.118 | — | — |

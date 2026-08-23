@@ -97,7 +97,7 @@ shown. Pooled comparators:
 
 | comparator | F1 (95% CI) | precision | recall | AUC | recall @ 1% FPR |
 |---|:--:|:--:|:--:|:--:|:--:|
-| Random forest (supervised) | **0.400 (±0.13)** | 0.347 | 0.531 | 0.809 | 0.174 |
+| Random forest (supervised) | **0.400 (±0.13)** | 0.347 | 0.531 | 0.809 | 0.166 |
 | Unweighted vote | 0.407 (±0.13) | 0.388 | 0.462 | — | — |
 | Isolation Forest | 0.324 (±0.11) | 0.256 | 0.490 | — | — |
 | Weighted ensemble | 0.208 (±0.06) | 0.967 | 0.118 | — | — |
@@ -120,18 +120,20 @@ Per-held-out-family (supervised RF):
 **Method notes (corrected).** Only `contamination` is tuned (on an inner validation
 split). The Random Forest decision threshold is fixed at 0.5 and the weighted ensemble's
 majority cutoff is fixed; **neither is tuned on validation or test data**. The RF
-`recall @ 1% FPR` (0.174) is computed with a threshold selected on an inner validation
-split of the training fold and applied once to the held-out family — it is NOT tuned on
-the test fold. RADAR goodware is a single run, so the benign hold-out is a *random* 20%
-pool, not a session-disjoint one; this is a sound unseen-ransomware-family test with a
-held-out random benign pool, not a host/session-disjoint deployment claim.
+`recall @ 1% FPR` (0.166) uses a cutoff selected on an inner validation split — among
+thresholds with validation FPR ≤ 0.01, the one with the highest recall — then applied once
+to the held-out family. The actual test-fold FPR at that cutoff is **0.005**, so the reported
+recall is genuinely within the 1% budget and is NOT tuned on the test fold (the model's
+default-0.5 test FPR is ~0.095). RADAR goodware is a single run, so the benign hold-out is a
+*random* 20% pool, not a session-disjoint one; this is a sound unseen-ransomware-family test
+with a held-out random benign pool, not a host/session-disjoint deployment claim.
 
 **Reading.** Supervised detection beats every unsupervised baseline **on unseen families**:
 RF F1 0.40 / AUC 0.81 vs IF 0.32 / LOF 0.20, and the precision-oriented weighted ensemble
 reaches 0.967 precision. But the result is **sensitive to family/session shift**: F1 drops
 from ~0.51 for the well-sampled families (BlackBasta, Akira, LockBit) to 0.20 for the
-smallest (CyberVolk 37, Meow 16 windows), and RF recall at a 1% FPR budget is only 0.17
-(where the model's default-0.5 FPR is ~0.09). The progression detector reports 0.000
+smallest (CyberVolk 37, Meow 16 windows), and RF recall at a 1% FPR budget is only 0.166
+(actual test-fold FPR at that cutoff 0.005). The progression detector reports 0.000
 because RADAR's per-run windows are too short to support the recon→tamper→encrypt
 trajectory across the 265 per-host process groups in the test pool — it is reported as a
 fair-evaluation **omission**, not a silently-zero result.

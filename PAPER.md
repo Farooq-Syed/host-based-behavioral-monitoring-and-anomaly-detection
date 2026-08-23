@@ -155,7 +155,7 @@ identical fold geometry; metrics are pooled mean ± 95% CI across families.
 
 | comparator | F1 (95% CI) | precision | recall | AUC | recall @ 1% FPR |
 |---|:--:|:--:|:--:|:--:|:--:|
-| Random forest (supervised) | **0.400 (±0.13)** | 0.347 | 0.531 | 0.809 | 0.174 |
+| Random forest (supervised) | **0.400 (±0.13)** | 0.347 | 0.531 | 0.809 | 0.166 |
 | Unweighted vote | 0.407 (±0.13) | 0.388 | 0.462 | — | — |
 | Isolation Forest | 0.324 (±0.11) | 0.256 | 0.490 | — | — |
 | Weighted ensemble | 0.208 (±0.06) | 0.967 | 0.118 | — | — |
@@ -174,8 +174,9 @@ On **unseen families** the supervised model beats every unsupervised baseline
 ensemble reaches 0.967 precision. But the margin is **sensitive to family shift**: F1
 falls from ~0.51 for the well-sampled families (BlackBasta, Akira, LockBit) to 0.20
 for the smallest (CyberVolk 37, Meow 16 windows), and RF recall at a 1% FPR budget is
-only 0.17 (with a threshold chosen on validation, not the test fold; the model's
-default-0.5 FPR is ~0.09). Only contamination is tuned — the RF decision and ensemble
+only 0.166 (cutoff selected on validation with FPR ≤ 0.01; actual test-fold FPR at that
+cutoff is 0.005, so it is genuinely within budget and NOT tuned on the test fold). Only
+contamination is tuned — the RF decision and ensemble
 thresholds remain fixed at 0.5. RADAR goodware is a single run, so the benign hold-out is
 a random pool, not a session-disjoint one. The progression comparator scores 0.000 because
 RADAR's per-run windows are too short to support the recon→tamper→encrypt trajectory

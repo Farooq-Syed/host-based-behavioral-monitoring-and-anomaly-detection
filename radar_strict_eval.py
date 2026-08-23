@@ -188,13 +188,14 @@ def _split_benign(benign_idx: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return held_out, keep
 
 
-def _threshold_from_train(rf, x_train_s: np.ndarray, y_train: np.ndarray,
-                          x_test_s: np.ndarray, target_fpr: float) -> float:
-    """Pick a decision threshold on an INNER validation split of the training fold.
+def _threshold_from_train(x_train_s: np.ndarray, y_train: np.ndarray, target_fpr: float) -> float:
+    """Pick the validation threshold for a target FPR budget, using only training labels.
 
-    Threshold is chosen only from training-fold labels (via an inner split), so the
-    reported test recall@FPR is not tuned on the test fold. Reuses the fold's RF to
-    score an inner validation split.
+    An inner split of the training fold is used to score a validation set (no test
+    labels). Among all thresholds whose validation FPR is <= ``target_fpr``, the one that
+    maximises recall is chosen; this never selects a threshold above the budget. If no
+    threshold achieves the budget (the target FPR is below the achievable minimum), fall
+    back to the lowest-FPR threshold.
     """
     from sklearn.metrics import roc_curve
     from sklearn.model_selection import train_test_split
@@ -208,12 +209,19 @@ def _threshold_from_train(rf, x_train_s: np.ndarray, y_train: np.ndarray,
     rs = StandardScaler().fit(x_train_s[fit_idx])
     rt.fit(rs.transform(x_train_s[fit_idx]), y_train[fit_idx])
     val_prob = rt.predict_proba(rs.transform(x_train_s[val_idx]))[:, 1]
-    fpr, _, thresholds = roc_curve(y_train[val_idx], val_prob)
+    fpr, tpr, thresholds = roc_curve(y_train[val_idx], val_prob)
     finite = np.isfinite(thresholds)
     if not finite.any():
         return float("nan")
-    fpr_f, thr_f = np.asarray(fpr)[finite], np.asarray(thresholds)[finite]
-    idx = int(np.argmin(np.abs(fpr_f - target_fpr)))
+    fpr_f, tpr_f, thr_f = np.asarray(fpr)[finite], np.asarray(tpr)[finite], np.asarray(thresholds)[finite]
+    # Among thresholds within the FPR budget, keep the one with the highest recall. Ties
+    # (same recall) keep the lower threshold (highest FPR yet still within budget).
+    within = fpr_f <= target_fpr
+    if within.any():
+        idx = int(np.argmax(np.where(within, tpr_f, -np.inf)))
+    else:
+        # Budget unreachable on this validation set; take the lowest-FPR operating point.
+        idx = int(np.argmin(fpr_f))
     return float(thr_f[idx])
 
 
@@ -225,12 +233,17 @@ def _recall_at_threshold(y_test: np.ndarray, prob: np.ndarray, threshold: float)
     return float(recall_score(y_test, pred, zero_division=0))
 
 
+def _fpr_at_threshold(y_test: np.ndarray, prob: np.ndarray, threshold: float) -> float:
+    """The test-fold FPR at a fixed decision threshold."""
+    if np.isnan(threshold) or (y_test == 0).sum() == 0:
+        return float("nan")
+    pred = (prob >= threshold).astype(int)
+    return float((pred[y_test == 0] == 1).mean())
+
+
 def _applied_fpr(y_test: np.ndarray, prob: np.ndarray) -> float:
     """The model's default-0.5 FPR on the test fold, for context."""
-    pred = (prob >= 0.5).astype(int)
-    if (y_test == 0).sum() == 0:
-        return float("nan")
-    return float((pred[y_test == 0] == 1).mean())
+    return _fpr_at_threshold(y_test, prob, 0.5)
 
 
 def _fit_predict_all(features: pd.DataFrame, truth: np.ndarray, train_idx: np.ndarray,
@@ -311,8 +324,9 @@ def _fit_predict_all(features: pd.DataFrame, truth: np.ndarray, train_idx: np.nd
         out["random_forest"]["roc_auc"] = float(roc_auc_score(y_test, prob_rf))
         out["random_forest"]["pr_auc"] = float(average_precision_score(y_test, prob_rf))
         out["random_forest"]["applied_fpr"] = _applied_fpr(y_test, prob_rf)
-        rf_threshold = _threshold_from_train(rf, x_train_s, y_train, x_test_s, target_fpr=0.01)
+        rf_threshold = _threshold_from_train(x_train_s, y_train, target_fpr=0.01)
         out["random_forest"]["recall_at_1pct_fpr"] = _recall_at_threshold(y_test, prob_rf, rf_threshold)
+        out["random_forest"]["fpr_at_1pct_threshold"] = _fpr_at_threshold(y_test, prob_rf, rf_threshold)
     return out
 
 

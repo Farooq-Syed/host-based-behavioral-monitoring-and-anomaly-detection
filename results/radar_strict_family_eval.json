@@ -15,68 +15,70 @@
   "random_state": 42,
   "comparators": {
     "rule": {
-      "recall": 0.0301,
-      "recall_ci": 0.0324,
       "f1": 0.0566,
       "f1_ci": 0.0597,
       "precision": 0.7143,
-      "precision_ci": 0.4513
+      "precision_ci": 0.4513,
+      "recall": 0.0301,
+      "recall_ci": 0.0324
     },
     "iforest": {
-      "recall": 0.4901,
-      "recall_ci": 0.0745,
       "f1": 0.3238,
       "f1_ci": 0.1111,
       "precision": 0.2559,
-      "precision_ci": 0.1068
+      "precision_ci": 0.1068,
+      "recall": 0.4901,
+      "recall_ci": 0.0745
     },
     "lof": {
-      "recall": 0.2964,
-      "recall_ci": 0.1154,
       "f1": 0.1946,
       "f1_ci": 0.0969,
       "precision": 0.1522,
-      "precision_ci": 0.0847
+      "precision_ci": 0.0847,
+      "recall": 0.2964,
+      "recall_ci": 0.1154
     },
     "random_forest": {
       "pr_auc": 0.4467,
       "pr_auc_ci": 0.1611,
-      "recall_at_1pct_fpr": 0.1741,
-      "recall_at_1pct_fpr_ci": 0.0743,
+      "recall_at_1pct_fpr": 0.1662,
+      "recall_at_1pct_fpr_ci": 0.0724,
+      "fpr_at_1pct_threshold": 0.0053,
+      "fpr_at_1pct_threshold_ci": 0.0036,
+      "recall": 0.5309,
+      "recall_ci": 0.096,
       "applied_fpr": 0.0949,
       "applied_fpr_ci": 0.0032,
       "roc_auc": 0.8087,
       "roc_auc_ci": 0.0337,
-      "precision": 0.3466,
-      "precision_ci": 0.1458,
-      "recall": 0.5309,
-      "recall_ci": 0.096,
       "f1": 0.3998,
-      "f1_ci": 0.129
+      "f1_ci": 0.129,
+      "precision": 0.3466,
+      "precision_ci": 0.1458
     },
     "vote": {
-      "recall": 0.4619,
-      "recall_ci": 0.0901,
       "f1": 0.4066,
       "f1_ci": 0.1298,
       "precision": 0.3879,
-      "precision_ci": 0.157
+      "precision_ci": 0.157,
+      "recall": 0.4619,
+      "recall_ci": 0.0901
     },
     "weighted": {
-      "recall": 0.1175,
-      "recall_ci": 0.0331,
       "f1": 0.2077,
       "f1_ci": 0.0538,
       "precision": 0.9673,
-      "precision_ci": 0.0587
+      "precision_ci": 0.0587,
+      "recall": 0.1175,
+      "recall_ci": 0.0331
     },
     "progression": {
-      "recall": 0.0,
-      "recall_ci": 0.0,
       "f1": 0.0,
       "f1_ci": 0.0,
       "precision": 0.0,
-      "precision_ci": 0.0
+      "precision_ci": 0.0,
+      "recall": 0.0,
+      "recall_ci": 0.0
     }
   },
   "per_group": [
@@ -103,7 +105,8 @@
         "roc_auc": 0.8077551533433885,
         "pr_auc": 0.5701968373167249,
         "applied_fpr": 0.09893048128342247,
-        "recall_at_1pct_fpr": 0.1794871794871795
+        "recall_at_1pct_fpr": 0.1794871794871795,
+        "fpr_at_1pct_threshold": 0.0053475935828877
       },
       "vote": {
         "f1": 0.4864864864864865,
@@ -145,7 +148,8 @@
         "roc_auc": 0.8291172292780749,
         "pr_auc": 0.5931900501154652,
         "applied_fpr": 0.09358288770053476,
-        "recall_at_1pct_fpr": 0.1640625
+        "recall_at_1pct_fpr": 0.140625,
+        "fpr_at_1pct_threshold": 0.0
       },
       "vote": {
         "f1": 0.47058823529411764,
@@ -187,7 +191,8 @@
         "roc_auc": 0.7413824252059545,
         "pr_auc": 0.17631159457894502,
         "applied_fpr": 0.09491978609625669,
-        "recall_at_1pct_fpr": 0.02702702702702703
+        "recall_at_1pct_fpr": 0.02702702702702703,
+        "fpr_at_1pct_threshold": 0.001336898395721925
       },
       "vote": {
         "f1": 0.3076923076923077,
@@ -229,7 +234,8 @@
         "roc_auc": 0.7958577370342076,
         "pr_auc": 0.5496396517406682,
         "applied_fpr": 0.08957219251336898,
-        "recall_at_1pct_fpr": 0.23015873015873015
+        "recall_at_1pct_fpr": 0.1984126984126984,
+        "fpr_at_1pct_threshold": 0.0053475935828877
       },
       "vote": {
         "f1": 0.47161572052401746,
@@ -271,7 +277,8 @@
         "roc_auc": 0.8609267570664629,
         "pr_auc": 0.4848755478265092,
         "applied_fpr": 0.0962566844919786,
-        "recall_at_1pct_fpr": 0.26785714285714285
+        "recall_at_1pct_fpr": 0.26785714285714285,
+        "fpr_at_1pct_threshold": 0.0106951871657754
       },
       "vote": {
         "f1": 0.42857142857142855,
@@ -313,7 +320,8 @@
         "roc_auc": 0.8061163101604278,
         "pr_auc": 0.5352355816028472,
         "applied_fpr": 0.09224598930481283,
-        "recall_at_1pct_fpr": 0.225
+        "recall_at_1pct_fpr": 0.225,
+        "fpr_at_1pct_threshold": 0.0053475935828877
       },
       "vote": {
         "f1": 0.546448087431694,
@@ -355,7 +363,8 @@
         "roc_auc": 0.8195604946524064,
         "pr_auc": 0.21776447203343835,
         "applied_fpr": 0.09893048128342247,
-        "recall_at_1pct_fpr": 0.125
+        "recall_at_1pct_fpr": 0.125,
+        "fpr_at_1pct_threshold": 0.009358288770053475
       },
       "vote": {
         "f1": 0.13513513513513514,

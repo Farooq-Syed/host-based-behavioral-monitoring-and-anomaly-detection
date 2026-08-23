@@ -49,6 +49,8 @@ def load_frame(path: Path, label_column: str) -> tuple[pd.DataFrame, np.ndarray]
 
 def evaluate(features: pd.DataFrame, truth: np.ndarray, folds: int, random_state: int,
              contamination: float) -> dict:
+    # Drop constant (zero-variance) features so StandardScaler does not divide by zero.
+    features = features.loc[:, features.nunique(dropna=True) > 1]
     splitter = StratifiedKFold(n_splits=folds, shuffle=True, random_state=random_state)
     agg = {name: {"f1": [], "precision": [], "recall": []} for name in ("iforest", "lof", "random_forest", "vote")}
     last_auc = 0.0

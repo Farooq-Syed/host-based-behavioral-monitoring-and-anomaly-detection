@@ -105,28 +105,33 @@ shown. Pooled comparators:
 | Rule-based | 0.057 (±0.08) | 0.714 | 0.030 | — | — |
 | Progression | 0.000 | — | — | — | — |
 
-Per-held-out-family (supervised RF):
+Per-held-out-family (supervised RF; recall@1%FPR and achieved test-fold FPR at the
+validation-selected cutoff):
 
-| held-out family | test attacks | F1 | AUC |
-|---|:--:|:--:|:--:|
-| BlackBasta | 128 | 0.511 | 0.829 |
-| Akira | 117 | 0.514 | 0.808 |
-| LockBit | 126 | 0.480 | 0.796 |
-| Medusa | 80 | 0.464 | 0.806 |
-| Lynx | 56 | 0.429 | 0.861 |
-| CyberVolk | 37 | 0.200 | 0.741 |
-| Meow | 16 | 0.200 | 0.820 |
+| held-out family | test attacks | F1 | AUC | recall@1%FPR | achieved test FPR |
+|---|:--:|:--:|:--:|:--:|:--:|
+| Akira | 117 | 0.514 | 0.808 | 0.179 | 0.005 |
+| BlackBasta | 128 | 0.511 | 0.829 | 0.141 | 0.000 |
+| LockBit | 126 | 0.480 | 0.796 | 0.198 | 0.005 |
+| Medusa | 80 | 0.464 | 0.806 | 0.225 | 0.005 |
+| Lynx | 56 | 0.429 | 0.861 | 0.268 | 0.011 |
+| CyberVolk | 37 | 0.200 | 0.741 | 0.027 | 0.001 |
+| Meow | 16 | 0.200 | 0.820 | 0.125 | 0.009 |
+
+Macro-average achieved test FPR: **0.005** (range 0.000–0.011).
 
 **Method notes (corrected).** Only `contamination` is tuned (on an inner validation
 split). The Random Forest decision threshold is fixed at 0.5 and the weighted ensemble's
 majority cutoff is fixed; **neither is tuned on validation or test data**. The RF
 `recall @ 1% FPR` (0.166) uses a cutoff selected on an inner validation split — among
 thresholds with validation FPR ≤ 0.01, the one with the highest recall — then applied once
-to the held-out family. The actual test-fold FPR at that cutoff is **0.005**, so the reported
-recall is genuinely within the 1% budget and is NOT tuned on the test fold (the model's
-default-0.5 test FPR is ~0.095). RADAR goodware is a single run, so the benign hold-out is a
-*random* 20% pool, not a session-disjoint one; this is a sound unseen-ransomware-family test
-with a held-out random benign pool, not a host/session-disjoint deployment claim.
+to the held-out family. The cutoff was selected to meet the 1% FPR budget on inner
+validation; its **macro-average test FPR was 0.005**, with per-family achieved FPR reported
+below (0.0–0.011). Because validation calibration cannot guarantee every unseen family's
+test FPR stays ≤ 1%, the per-family values are reported rather than assumed. RADAR goodware
+is a single run, so the benign hold-out is a *random* 20% pool, not a session-disjoint one;
+this is a sound unseen-ransomware-family test with a held-out random benign pool, not a
+host/session-disjoint deployment claim.
 
 **Reading.** Supervised detection beats every unsupervised baseline **on unseen families**:
 RF F1 0.40 / AUC 0.81 vs IF 0.32 / LOF 0.20, and the precision-oriented weighted ensemble

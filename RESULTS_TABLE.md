@@ -19,8 +19,10 @@ training); contamination tuned on an inner validation split. Pooled 95% CI.
 | Rule-based | 0.057 | 0.714 | 0.030 | — | — |
 | Progression | 0.000 | — | — | — | — |
 
-Per-family (supervised RF): BlackBasta 0.511, Akira 0.514, LockBit 0.480, Medusa 0.464,
-Lynx 0.429, CyberVolk 0.200, Meow 0.200.
+Per-family (supervised RF; F1, achieved test FPR at the validation-selected recall@1% cutoff):
+BlackBasta 0.511 (FPR 0.000), Akira 0.514 (0.005), LockBit 0.480 (0.005), Medusa 0.464
+(0.005), Lynx 0.429 (0.011), CyberVolk 0.200 (0.001), Meow 0.200 (0.009). Macro-average test
+FPR 0.005 (range 0.000–0.011).
 
 ## 40-Row Sample (`data/sample_host_telemetry.csv`)
 

@@ -174,8 +174,10 @@ On **unseen families** the supervised model beats every unsupervised baseline
 ensemble reaches 0.967 precision. But the margin is **sensitive to family shift**: F1
 falls from ~0.51 for the well-sampled families (BlackBasta, Akira, LockBit) to 0.20
 for the smallest (CyberVolk 37, Meow 16 windows), and RF recall at a 1% FPR budget is
-only 0.166 (cutoff selected on validation with FPR ≤ 0.01; actual test-fold FPR at that
-cutoff is 0.005, so it is genuinely within budget and NOT tuned on the test fold). Only
+only 0.166. The cutoff was selected to meet the 1% FPR budget on inner validation; its
+macro-average test FPR was 0.005, with per-family achieved FPR reported (0.000–0.011),
+since validation calibration cannot guarantee every unseen family's test FPR stays ≤ 1%.
+Only
 contamination is tuned — the RF decision and ensemble
 thresholds remain fixed at 0.5. RADAR goodware is a single run, so the benign hold-out is
 a random pool, not a session-disjoint one. The progression comparator scores 0.000 because

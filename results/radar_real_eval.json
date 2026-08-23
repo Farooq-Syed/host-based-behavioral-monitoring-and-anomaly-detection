@@ -1,0 +1,34 @@
+{
+  "input": "data/radar_real_windows.csv",
+  "method": "comparative (IF + LOF + RF, majority vote)",
+  "folds": 5,
+  "rows": 4283,
+  "attacks": 543,
+  "metrics": {
+    "iforest": {
+      "f1_mean": 0.3969,
+      "f1_std": 0.0382,
+      "precision": 0.391,
+      "recall": 0.4034
+    },
+    "lof": {
+      "f1_mean": 0.1632,
+      "f1_std": 0.0257,
+      "precision": 0.1655,
+      "recall": 0.162
+    },
+    "random_forest": {
+      "f1_mean": 0.5152,
+      "f1_std": 0.0197,
+      "precision": 0.4946,
+      "recall": 0.5396
+    },
+    "vote": {
+      "f1_mean": 0.4818,
+      "f1_std": 0.0299,
+      "precision": 0.6738,
+      "recall": 0.3776
+    },
+    "auc_random_forest": 0.8184
+  }
+}

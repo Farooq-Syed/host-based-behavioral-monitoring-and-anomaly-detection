@@ -4,6 +4,13 @@
 > the LANL schema assessment, and the evidence required before reporting operational
 > endpoint performance.
 
+> **Real data now.** The ML comparison also runs on real Sysmon telemetry from the public
+> **RADAR** ransomware dataset (CC BY 4.0): 4,283 real Sysmon windows, where supervised
+> beats unsupervised (RF F1 0.515 / AUC 0.82 vs. IF 0.40 / LOF 0.16) and is *more honest
+> than the synthetic 0.89*. See [REAL_DATA_RESULTS.md](REAL_DATA_RESULTS.md) and
+> `sysmon_adapter.py`. The synthetic result is kept (and its 0.89 is now reported as the
+> easier, self-consistency number, not the headline).
+
 [![CI](https://github.com/Farooq-Syed/host-based-behavioral-monitoring-and-anomaly-detection/actions/workflows/ci.yml/badge.svg)](https://github.com/Farooq-Syed/host-based-behavioral-monitoring-and-anomaly-detection/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-non--commercial-purple)

@@ -155,12 +155,12 @@ identical fold geometry; metrics are pooled mean ± 95% CI across families.
 
 | comparator | F1 (95% CI) | precision | recall | AUC | recall @ 1% FPR |
 |---|:--:|:--:|:--:|:--:|:--:|
-| Random forest (supervised) | **0.400 (±0.13)** | 0.347 | 0.531 | 0.809 | 0.200 |
+| Random forest (supervised) | **0.400 (±0.13)** | 0.347 | 0.531 | 0.809 | 0.174 |
 | Unweighted vote | 0.407 (±0.13) | 0.388 | 0.462 | — | — |
 | Isolation Forest | 0.324 (±0.11) | 0.256 | 0.490 | — | — |
-| Weighted ensemble | 0.219 (±0.06) | 0.971 | 0.125 | — | — |
+| Weighted ensemble | 0.208 (±0.06) | 0.967 | 0.118 | — | — |
 | LOF | 0.195 (±0.10) | 0.152 | 0.296 | — | — |
-| Rule-based | 0.071 (±0.08) | 0.714 | 0.039 | — | — |
+| Rule-based | 0.057 (±0.08) | 0.714 | 0.030 | — | — |
 | Progression | 0.000 | — | — | — | — |
 
 Per held-out family (supervised RF): BlackBasta F1 0.511 / AUC 0.829; Akira 0.514 /
@@ -171,15 +171,20 @@ Per held-out family (supervised RF): BlackBasta F1 0.511 / AUC 0.829; Akira 0.51
 
 On **unseen families** the supervised model beats every unsupervised baseline
 (RF F1 0.40 / AUC 0.81 vs. IF 0.32 / LOF 0.20), and the precision-oriented weighted
-ensemble reaches 0.97 precision. But the margin is **sensitive to family shift**: F1
+ensemble reaches 0.967 precision. But the margin is **sensitive to family shift**: F1
 falls from ~0.51 for the well-sampled families (BlackBasta, Akira, LockBit) to 0.20
 for the smallest (CyberVolk 37, Meow 16 windows), and RF recall at a 1% FPR budget is
-only 0.20. The progression comparator scores 0.000 because RADAR's per-run windows are
-too short to support the recon→tamper→encrypt trajectory; it is reported as a
-fair-evaluation **omission** rather than shoehorned. The narrow defensible claim:
+only 0.17 (with a threshold chosen on validation, not the test fold; the model's
+default-0.5 FPR is ~0.09). Only contamination is tuned — the RF decision and ensemble
+thresholds remain fixed at 0.5. RADAR goodware is a single run, so the benign hold-out is
+a random pool, not a session-disjoint one. The progression comparator scores 0.000 because
+RADAR's per-run windows are too short to support the recon→tamper→encrypt trajectory
+across the per-host process groups; it is reported as a fair-evaluation **omission** rather
+than shoehorned. The narrow defensible claim:
 **supervised detection beats unsupervised baselines on real RADAR Sysmon windows, but
-the margin is sensitive to family/session shift, and the random-CV number (0.515) is
-in-distribution-optimistic.**
+the margin is sensitive to family/session shift, the random-CV number (0.515) is
+in-distribution-optimistic, and this is not yet a deployment-level host/session
+generalization claim.**
 
 ## 6. What the audit of my own harness found
 

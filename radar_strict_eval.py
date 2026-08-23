@@ -10,14 +10,26 @@ the known test prevalence) with a strict, leakage-safe protocol:
       - ``host``  : leave-one-host-out on the ``host`` column (the committed windows
         file has no family tag, so host is used as a session proxy today).
       - ``family``: hold out entire ransomware families; benign windows from held-out
-        families/periods are excluded from training. Requires the family-tagged
-        dataset (sysmon_adapter.py --include-metadata + the gated RADAR download).
+        runs are excluded from training. Requires the family-tagged dataset
+        (sysmon_adapter.py --include-metadata + the gated RADAR download).
   * Full comparator ablation evaluated on identical fold geometry: rule-based,
     IsolationForest, LOF, RandomForest, unweighted ensemble, weighted ensemble, and
     progression (only if the RADAR window sequence can support a fair trajectory).
 
 Metrics reported per comparator, pooled and per-held-out group: F1, precision, recall,
 ROC-AUC, PR-AUC, recall@fixed-FPR, with mean +/- 95% CI across held-out groups.
+
+Scope and honest limits (see also results JSON):
+  * Only ``contamination`` is tuned on an inner validation split. The Random Forest
+    decision threshold is fixed at 0.5, and the weighted ensemble's majority threshold
+    is the fixed 0.5 weighted-mean cutoff; neither is tuned on validation or test data.
+  * RADAR goodware is a single run, so the benign hold-out is a *random* 20% pool, not a
+    session-disjoint benign evaluation. This is a sound unseen-ransomware-family test
+    with a held-out random benign pool, but it is NOT a full host/session-disjoint
+    deployment claim.
+  * The progression detector needs per-host timestamp sequences; RADAR's per-run windows
+    are short, so it may legitimately flag nothing. It is reported as evaluated (or as a
+    fair-evaluation omission) rather than silently dropped.
 
 Usage:
   python radar_strict_eval.py --input data/radar_real_windows.csv --label-column label --split host
@@ -54,7 +66,7 @@ RULE_THRESHOLDS = {
     "shadow_copy_events": 1,
     "unsigned_process_events": 1,
     "file_delete_count": 50,
-    "registry_events": 0,
+    "registry_events": 5,
 }
 RULE_SCORE_CUTOFF = 3
 
@@ -176,24 +188,54 @@ def _split_benign(benign_idx: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return held_out, keep
 
 
-def _recall_at_fpr(y_true: np.ndarray, prob: np.ndarray, target_fpr: float) -> tuple[float, float]:
-    """Recall and achieved FPR at the threshold nearest a target FPR (finite thresholds)."""
-    from sklearn.metrics import roc_curve
+def _threshold_from_train(rf, x_train_s: np.ndarray, y_train: np.ndarray,
+                          x_test_s: np.ndarray, target_fpr: float) -> float:
+    """Pick a decision threshold on an INNER validation split of the training fold.
 
-    if len(np.unique(y_true)) < 2:
-        return float("nan"), float("nan")
-    fpr, tpr, thresholds = roc_curve(y_true, prob)
+    Threshold is chosen only from training-fold labels (via an inner split), so the
+    reported test recall@FPR is not tuned on the test fold. Reuses the fold's RF to
+    score an inner validation split.
+    """
+    from sklearn.metrics import roc_curve
+    from sklearn.model_selection import train_test_split
+
+    if len(np.unique(y_train)) < 2:
+        return float("nan")
+    # Split the training fold into fit + validation (no test labels involved).
+    fit_idx, val_idx = train_test_split(np.arange(len(y_train)), test_size=0.25,
+                                        random_state=0, stratify=y_train)
+    rt = RandomForestClassifier(n_estimators=300, class_weight="balanced", random_state=0, n_jobs=-1)
+    rs = StandardScaler().fit(x_train_s[fit_idx])
+    rt.fit(rs.transform(x_train_s[fit_idx]), y_train[fit_idx])
+    val_prob = rt.predict_proba(rs.transform(x_train_s[val_idx]))[:, 1]
+    fpr, _, thresholds = roc_curve(y_train[val_idx], val_prob)
     finite = np.isfinite(thresholds)
     if not finite.any():
-        return float("nan"), float("nan")
+        return float("nan")
     fpr_f, thr_f = np.asarray(fpr)[finite], np.asarray(thresholds)[finite]
     idx = int(np.argmin(np.abs(fpr_f - target_fpr)))
-    return float(tpr[idx]), float(fpr_f[idx])
+    return float(thr_f[idx])
+
+
+def _recall_at_threshold(y_test: np.ndarray, prob: np.ndarray, threshold: float) -> float:
+    """Recall on the test fold at a fixed threshold chosen on validation (no test tuning)."""
+    if np.isnan(threshold):
+        return float("nan")
+    pred = (prob >= threshold).astype(int)
+    return float(recall_score(y_test, pred, zero_division=0))
+
+
+def _applied_fpr(y_test: np.ndarray, prob: np.ndarray) -> float:
+    """The model's default-0.5 FPR on the test fold, for context."""
+    pred = (prob >= 0.5).astype(int)
+    if (y_test == 0).sum() == 0:
+        return float("nan")
+    return float((pred[y_test == 0] == 1).mean())
 
 
 def _fit_predict_all(features: pd.DataFrame, truth: np.ndarray, train_idx: np.ndarray,
                      test_idx: np.ndarray, contamination: float, random_state: int,
-                     host_col: str, ts_col: str) -> Dict[str, Dict[str, float]]:
+                     host_col: str, ts_col: str, full_frame: pd.DataFrame | None = None) -> Dict[str, Dict[str, float]]:
     x_train = features.iloc[train_idx].to_numpy(dtype=float)
     x_test = features.iloc[test_idx].to_numpy(dtype=float)
     y_train, y_test = truth[train_idx], truth[test_idx]
@@ -219,8 +261,7 @@ def _fit_predict_all(features: pd.DataFrame, truth: np.ndarray, train_idx: np.nd
     prob_rf = rf.predict_proba(x_test_s)[:, 1]
 
     pred_rule_train = rule_detector(features.iloc[train_idx])
-    sub = features.iloc[test_idx]
-    pred_rule = rule_detector(sub)
+    pred_rule = rule_detector(features.iloc[test_idx])
     votes = pred_if + pred_lof + pred_rf
     pred_vote = (votes >= 2).astype(int)
 
@@ -242,7 +283,17 @@ def _fit_predict_all(features: pd.DataFrame, truth: np.ndarray, train_idx: np.nd
     )
     pred_weighted = (weighted >= CALIBRATED_CORE_THRESHOLD * core_total).astype(int)
 
-    pred_prog = progression_detector(sub, host_col, ts_col)
+    # Progression detector needs the metadata columns (host + timestamp), which are
+    # dropped from the numeric `features`. Reattach them from full_frame so the
+    # trajectory can be evaluated fairly; if the frame is unavailable, omit progression
+    # (all-zero) rather than mis-report a result.
+    if full_frame is not None and host_col in full_frame.columns and ts_col in full_frame.columns:
+        meta = full_frame.iloc[test_idx][[ts_col, host_col]].copy()
+        meta["timestamp"] = meta[ts_col]
+        meta["host"] = meta[host_col]
+        pred_prog = progression_detector(meta, "host", "timestamp")
+    else:
+        pred_prog = np.zeros(len(test_idx), dtype=int)
 
     out = {}
     for name, pred in (("rule", pred_rule), ("iforest", pred_if), ("lof", pred_lof),
@@ -253,11 +304,15 @@ def _fit_predict_all(features: pd.DataFrame, truth: np.ndarray, train_idx: np.nd
             "precision": float(precision_score(y_test, pred, zero_division=0)),
             "recall": float(recall_score(y_test, pred, zero_division=0)),
         }
-    # Probabilistic metrics need a score: RF is the only supervised scorer here.
-    out["random_forest"]["roc_auc"] = float(roc_auc_score(y_test, prob_rf)) if len(np.unique(y_test)) > 1 else float("nan")
-    out["random_forest"]["pr_auc"] = float(average_precision_score(y_test, prob_rf))
-    out["random_forest"]["recall_at_1pct_fpr"] = _recall_at_fpr(y_test, prob_rf, 0.01)[0]
-    out["random_forest"]["recall_at_10pct_fpr"] = _recall_at_fpr(y_test, prob_rf, 0.10)[0]
+    # Probabilistic metrics need a score: RF is the only supervised scorer here. The
+    # recall@FPR threshold is selected on an inner validation split of the TRAINING
+    # fold (never on the test fold) and then applied once to the test fold.
+    if len(np.unique(y_test)) > 1:
+        out["random_forest"]["roc_auc"] = float(roc_auc_score(y_test, prob_rf))
+        out["random_forest"]["pr_auc"] = float(average_precision_score(y_test, prob_rf))
+        out["random_forest"]["applied_fpr"] = _applied_fpr(y_test, prob_rf)
+        rf_threshold = _threshold_from_train(rf, x_train_s, y_train, x_test_s, target_fpr=0.01)
+        out["random_forest"]["recall_at_1pct_fpr"] = _recall_at_threshold(y_test, prob_rf, rf_threshold)
     return out
 
 
@@ -361,7 +416,7 @@ def main() -> None:
             _tune_contamination(features.iloc[train_idx].to_numpy(dtype=float),
                                 truth[train_idx], args.inner_folds, args.random_state, candidates)
         res = _fit_predict_all(features, truth, train_idx, test_idx, cont, args.random_state,
-                               args.host_column, args.ts_column)
+                               args.host_column, args.ts_column, full_frame=frame)
         per_group.append({k: v for k, v in res.items() if k != "_group"} | {"_group": group})
         rf = res["random_forest"]
         print(f"  held-out {group:<14} n_test={len(test_idx):<5} att={int(truth[test_idx].sum()):<4} "

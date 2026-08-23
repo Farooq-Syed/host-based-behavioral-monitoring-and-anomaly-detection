@@ -145,7 +145,10 @@ def main() -> None:
     ap.add_argument("--include-metadata", action="store_true",
                     help="Attach a 'family' column (from the source CSV filename) and a "
                          "'run' id so strict family/session hold-out evaluation is possible. "
-                         "Off by default to keep outputs byte-identical to the committed file.")
+                         "RADAR's goodware is a SINGLE run, so all benign windows share one "
+                         "run id; a benign hold-out is therefore a random pool, not a "
+                         "session-disjoint one (see radar_strict_eval.py). Off by default to "
+                         "keep outputs byte-identical to the committed file.")
     args = ap.parse_args()
 
     good = load_sysmon(Path(args.goodware))
@@ -154,6 +157,7 @@ def main() -> None:
     windows = _window_rows(good, args.window_minutes)
     if args.include_metadata:
         windows["family"] = "Goodware"
+        # Single-run goodware: all benign windows share one run id (no session grouping).
         windows["run"] = f"goodware:{_family_from_name(args.goodware)}"
 
     for path in args.ransomware:

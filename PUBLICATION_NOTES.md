@@ -36,8 +36,8 @@ number is in-distribution-optimistic.
    estimates carry wide CIs; state this plainly.
 2. The progression detector could not be evaluated fairly on RADAR (short per-run windows)
    and is reported as an omission, not omitted silently.
-3. Real-data coverage is four families/4,300 windows; the RADAR imbalanced/drift
-   sub-datasets are a natural extension.
+3. Real-data coverage is seven families/4,300 windows; the RADAR imbalanced/drift
+   sub-datasets are a natural extension to more families and longer runs.
 4. RADAR is lab-generated (real malware + real Sysmon), not live enterprise telemetry —
    do not over-claim.
 

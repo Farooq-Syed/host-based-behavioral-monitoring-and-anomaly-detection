@@ -1,5 +1,9 @@
 # Host-Based Behavioral Monitoring and Anomaly Detection
 
+> See [EXTERNAL_VALIDATION.md](EXTERNAL_VALIDATION.md) for the real-telemetry gap,
+> the LANL schema assessment, and the evidence required before reporting operational
+> endpoint performance.
+
 [![CI](https://github.com/Farooq-Syed/host-based-behavioral-monitoring-and-anomaly-detection/actions/workflows/ci.yml/badge.svg)](https://github.com/Farooq-Syed/host-based-behavioral-monitoring-and-anomaly-detection/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-non--commercial-purple)

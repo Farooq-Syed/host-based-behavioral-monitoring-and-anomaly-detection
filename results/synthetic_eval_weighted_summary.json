@@ -1,0 +1,66 @@
+{
+  "rows_processed": 2000,
+  "unique_hosts": 59,
+  "suspicious_rows": 627,
+  "top_hosts": {
+    "host-51": 17,
+    "host-09": 17,
+    "host-30": 16,
+    "host-37": 16,
+    "host-42": 16
+  },
+  "flagged_examples": [
+    {
+      "row_id": 1,
+      "host": "host-39",
+      "process_name": "powershell.exe"
+    },
+    {
+      "row_id": 4,
+      "host": "host-41",
+      "process_name": "encryptor.exe"
+    },
+    {
+      "row_id": 5,
+      "host": "host-33",
+      "process_name": "powershell.exe"
+    },
+    {
+      "row_id": 16,
+      "host": "host-52",
+      "process_name": "encryptor.exe"
+    },
+    {
+      "row_id": 17,
+      "host": "host-30",
+      "process_name": "rclone.exe"
+    },
+    {
+      "row_id": 19,
+      "host": "host-49",
+      "process_name": "powershell.exe"
+    },
+    {
+      "row_id": 22,
+      "host": "host-37",
+      "process_name": "encryptor.exe"
+    },
+    {
+      "row_id": 25,
+      "host": "host-38",
+      "process_name": "powershell.exe"
+    },
+    {
+      "row_id": 30,
+      "host": "host-28",
+      "process_name": "encryptor.exe"
+    },
+    {
+      "row_id": 36,
+      "host": "host-32",
+      "process_name": "encryptor.exe"
+    }
+  ],
+  "best_method_by_f1": "random_forest",
+  "metrics_available": true
+}

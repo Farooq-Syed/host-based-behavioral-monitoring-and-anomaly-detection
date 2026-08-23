@@ -1,0 +1,51 @@
+{
+  "rule_based": {
+    "precision": 0.9708,
+    "recall": 0.4772,
+    "f1_score": 0.6399,
+    "accuracy": 0.794,
+    "predicted_suspicious": 377
+  },
+  "progression": {
+    "precision": 0.4012,
+    "recall": 0.3546,
+    "f1_score": 0.3765,
+    "accuracy": 0.5495,
+    "predicted_suspicious": 678
+  },
+  "reputation": {
+    "precision": 0.9747,
+    "recall": 0.2516,
+    "f1_score": 0.4,
+    "accuracy": 0.7105,
+    "predicted_suspicious": 198
+  },
+  "isolation_forest": {
+    "precision": 0.9675,
+    "recall": 0.5046,
+    "f1_score": 0.6632,
+    "accuracy": 0.8035,
+    "predicted_suspicious": 400
+  },
+  "local_outlier_factor": {
+    "precision": 0.4975,
+    "recall": 0.2595,
+    "f1_score": 0.341,
+    "accuracy": 0.6155,
+    "predicted_suspicious": 400
+  },
+  "random_forest": {
+    "precision": 0.9653,
+    "recall": 0.9426,
+    "f1_score": 0.9538,
+    "accuracy": 0.965,
+    "predicted_suspicious": 749
+  },
+  "ensemble": {
+    "precision": 0.9649,
+    "recall": 0.7888,
+    "f1_score": 0.868,
+    "accuracy": 0.908,
+    "predicted_suspicious": 627
+  }
+}

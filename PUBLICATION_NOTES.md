@@ -22,7 +22,7 @@ isolation.
 - ensemble recall improvement over any single unsupervised method on the sample
 - harder synthetic telemetry generation to avoid the "everything scores 1.00" trap
 - progression detector design that maps recon -> tampering -> encryption stages
-- 23 passing tests
+- 24 passing tests
 
 ## Main reviewer risks
 

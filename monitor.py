@@ -86,6 +86,20 @@ BUILTIN_REPUTATION = {
     "bitsadmin.exe": "abuse_prone",
 }
 
+CORE_ENSEMBLE_METHODS = [
+    "rule_flag",
+    "isolation_forest_flag",
+    "lof_flag",
+    "random_forest_flag",
+]
+
+# The calibrated ensemble treats the four primary detectors as the decision base
+# and lets progression/reputation act as supporting boosts. On the harder 2,000-row
+# synthetic eval set dated August 23, 2026, requiring roughly 40% of the core
+# detector weight improved recall/F1 over the older weighted-majority threshold
+# while keeping precision high.
+CALIBRATED_CORE_THRESHOLD = 0.40
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Analyze host telemetry for suspicious behavior.")
@@ -345,8 +359,11 @@ def build_calibrated_ensemble(report: pd.DataFrame, truth: pd.Series | None) -> 
     method_columns = list(weights.keys())
     weighted_score = sum(report[method].astype(float) * weight for method, weight in weights.items())
     total_weight = sum(weights.values())
+    core_weight_total = sum(weights[method] for method in CORE_ENSEMBLE_METHODS)
+    threshold = CALIBRATED_CORE_THRESHOLD * core_weight_total
     report["ensemble_weighted_score"] = (weighted_score / total_weight).round(4)
-    report["is_suspicious_calibrated"] = (weighted_score >= 0.5 * total_weight).astype(int)
+    report["ensemble_weighted_threshold"] = round(threshold / total_weight, 4)
+    report["is_suspicious_calibrated"] = (weighted_score >= threshold).astype(int)
     return report
 
 

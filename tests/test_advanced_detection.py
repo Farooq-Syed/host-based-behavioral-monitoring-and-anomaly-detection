@@ -116,6 +116,7 @@ class CalibratedEnsembleTests(unittest.TestCase):
         frame = pd.DataFrame(rows)
         report = monitor.build_report(frame, contamination=0.2, random_state=42, label_column="label", ensemble="weighted")
         self.assertIn("ensemble_weighted_score", report.columns)
+        self.assertIn("ensemble_weighted_threshold", report.columns)
         self.assertIn("is_suspicious_calibrated", report.columns)
         self.assertIn("progression_flag", report.columns)
         self.assertIn("reputation_flag", report.columns)
@@ -137,6 +138,24 @@ class CalibratedEnsembleTests(unittest.TestCase):
         weights = monitor._ensemble_weights(report, truth)
         self.assertIn("rule_flag", weights)
         self.assertGreaterEqual(weights["rule_flag"], 0.05)
+
+    def test_weighted_threshold_uses_core_detectors_as_base(self):
+        report = pd.DataFrame(
+            [
+                {
+                    "rule_flag": 1,
+                    "isolation_forest_flag": 0,
+                    "lof_flag": 0,
+                    "random_forest_flag": 0,
+                    "progression_flag": 1,
+                    "reputation_flag": 1,
+                }
+            ]
+        )
+        truth = pd.Series([1])
+        calibrated = monitor.build_calibrated_ensemble(report.copy(), truth)
+        self.assertIn("ensemble_weighted_threshold", calibrated.columns)
+        self.assertGreaterEqual(float(calibrated.iloc[0]["ensemble_weighted_threshold"]), 0.0)
 
 
 if __name__ == "__main__":

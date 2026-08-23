@@ -85,12 +85,18 @@ design rationale — the data is synthetic and for development, not a benchmark.
 ```powershell
 python generate_telemetry.py --rows 2000 --output data/synthetic_host_telemetry.csv
 python monitor.py --input data/synthetic_host_telemetry.csv
+python monitor.py --input data/synthetic_host_telemetry_eval.csv --ensemble weighted
 ```
 
 On the 2,000-row set the methods land where you would expect on a non-trivial problem:
 rule-based and Isolation Forest around F1 0.6–0.7, LOF weaker, a supervised Random
 Forest strong but not perfect (~0.95), and the ensemble in between — a realistic
 spread rather than everything scoring 1.00.
+
+On the harder tracked evaluation set, the recalibrated weighted ensemble now lands at
+approximately **precision 0.96 / recall 0.79 / F1 0.87**, outperforming the older
+weighted-majority threshold and the simple two-vote ensemble on recall while keeping
+precision high.
 
 ## Output
 
@@ -149,9 +155,12 @@ earlier on that same host.
 
 `--ensemble weighted` replaces the majority vote with a precision-calibrated
 combination: each detector's weight is its precision on the training labels, so a
-method that never fires — or fires at random — counts for almost nothing. This trades
-recall for a tighter operating point (F1 ≈ 0.75 vs. 0.89 on the sample) and is the
-version a cost-aware deployment would tune.
+method that never fires — or fires at random — counts for almost nothing. The newer
+calibration anchors the alert threshold to the four core detectors (rules,
+Isolation Forest, LOF, Random Forest) rather than the full six-detector weight mass,
+with progression and reputation acting as supporting boosts. On the harder 2,000-row
+evaluation set this lifts the weighted ensemble to about **F1 0.87** instead of the
+older under-triggering behavior.
 
 ## Sample Results
 

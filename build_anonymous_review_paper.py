@@ -8,6 +8,7 @@ from docx.oxml.ns import qn
 from pathlib import Path
 
 OUT = Path(__file__).with_name("HBBMAAD_anonymous_methodological_review.docx")
+ARCHITECTURE_FIGURE = Path(__file__).with_name("assets") / "evaluation_architecture.png"
 
 INK = RGBColor(11, 37, 69)
 BLUE = RGBColor(46, 116, 181)
@@ -29,7 +30,7 @@ def shade(cell, fill):
     shd.set(qn("w:fill"), fill)
     tcPr.append(shd)
 
-def set_cell_margins(cell, top=80, start=120, bottom=80, end=120):
+def set_cell_margins(cell, top=55, start=120, bottom=55, end=120):
     tc = cell._tc
     tcPr = tc.get_or_add_tcPr()
     tcMar = tcPr.first_child_found_in("w:tcMar")
@@ -88,6 +89,28 @@ def add_para(doc, text, italic=False):
     r = p.add_run(text); set_font(r, 10.5, italic=italic)
     return p
 
+def add_table_reading(doc, text):
+    p = doc.add_paragraph()
+    p.paragraph_format.left_indent = Inches(0.12)
+    p.paragraph_format.right_indent = Inches(0.08)
+    p.paragraph_format.space_after = Pt(7)
+    p.paragraph_format.line_spacing = 1.05
+    r = p.add_run("How to read this table. ")
+    set_font(r, 8.8, bold=True, color=BLUE)
+    r = p.add_run(text); set_font(r, 8.8)
+    return p
+
+def add_architecture_figure(doc):
+    p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.space_after = Pt(3)
+    shape = p.add_run().add_picture(str(ARCHITECTURE_FIGURE), width=Inches(6.6))
+    shape._inline.docPr.set("descr", "RADAR ransomware and goodware Sysmon logs are aggregated into five-minute windows, separated by ransomware family, tuned using only training and validation data, and evaluated once on an unseen family plus a fixed benign pool.")
+    shape._inline.docPr.set("title", "RADAR unseen-family evaluation architecture")
+    p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.space_after = Pt(7)
+    r = p.add_run("Figure 1. Dataset-provider executions and the author-controlled offline evaluation boundary.")
+    set_font(r, 8.5, italic=True, color=MUTED)
+
 def add_bullet(doc, text):
     p = doc.add_paragraph(style="List Bullet")
     p.paragraph_format.space_after = Pt(3)
@@ -141,9 +164,13 @@ def main():
     r = p.add_run("A strict Sysmon evaluation of rules, anomaly detectors, supervised learning, and ensembles")
     set_font(r, 12, italic=True, color=MUTED)
     p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p.paragraph_format.space_after = Pt(28)
+    p.paragraph_format.space_after = Pt(8)
     r = p.add_run("Anonymous submission for independent methodological feedback")
     set_font(r, 10, color=MUTED)
+    p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.space_after = Pt(20)
+    r = p.add_run("Audience and scope: a specialized cybersecurity measurement paper for endpoint security and security-ML venues, written to remain accessible to general cybersecurity reviewers. ML is used for comparison, not presented as a new detector architecture.")
+    set_font(r, 9.5, bold=True, color=BLUE)
 
     add_heading(doc, "Abstract")
     add_para(doc, "Endpoint ransomware detection is often reported on random train/test splits that mix behavior from the same malware family across folds. This manuscript compares rule-based detection, Isolation Forest, Local Outlier Factor, a supervised Random Forest, and two ensembles on public RADAR Sysmon telemetry. The evaluation holds out each ransomware family in turn and tests against the unseen family plus a fixed random 20% goodware pool. On seven held-out families, Random Forest achieved macro F1 0.400 (95% CI +/-0.13) and AUC 0.809; Isolation Forest and LOF achieved F1 0.324 and 0.195. However, performance varied sharply by family, from F1 0.514 to 0.200. A 1% FPR cutoff was selected solely on inner validation: macro-average achieved test FPR was 0.005 (range 0.000-0.011) and recall was 0.166. The result supports a narrow conclusion: conventional supervised detection outperforms the tested unsupervised baselines on these RADAR windows, but performance is sensitive to unseen-family shift. It does not establish host/session-disjoint or deployment-level generalization.")
@@ -154,9 +181,16 @@ def main():
     add_para(doc, "Ransomware detectors are commonly evaluated using endpoint or event telemetry from a finite set of observed attack families. A high score under random cross-validation can be useful for measuring in-distribution classification, but it does not answer the more operational question: does the detector retain utility when the ransomware family changes? This distinction matters because malware families differ in their staging, registry behavior, process creation, and file operations.")
     add_para(doc, "This study asks two limited questions. First, how do simple rules, unsupervised anomaly detectors, a supervised classifier, and small ensembles compare under a common feature representation? Second, how much does performance vary when the attack family is absent from training? The aim is not to propose a new learning algorithm. It is to make a conventional comparison auditable and to state precisely what its dataset and split can support.")
 
+    add_heading(doc, "1.1 Reader guide: endpoint telemetry and metrics", 2)
+    add_para(doc, "Sysmon is a Windows endpoint logging service that records events such as process creation, file activity, registry changes, and network connections. This study groups those events into five-minute windows and labels a window as ransomware or benign. Precision is the fraction of alerts that are ransomware, recall is the fraction of ransomware windows detected, and F1 is their harmonic mean on a 0-to-1 scale. AUC measures how well model scores rank ransomware above benign windows across thresholds. FPR is the fraction of benign windows incorrectly alerted, and recall@1%FPR reports the attacks found after a threshold is selected for a 1% validation false-positive target. A 95% confidence interval summarizes variation across the seven held-out families; none of these values is a deployment guarantee.")
+
     add_heading(doc, "2. Data and Windowed Telemetry")
     add_para(doc, "The study uses RADAR, a public dataset of Sysmon logs from seven ransomware families (Akira, BlackBasta, CyberVolk, LockBit, Lynx, Medusa, and Meow) and goodware activity. Raw events are aggregated into five-minute windows. The reproducible subset contains 4,300 windows: 3,740 benign and 560 ransomware windows. Each window contains ten Sysmon-recoverable event-count features: process creation, file creation/deletion, rename-like activity, network connections, registry events, module loads, unsigned process events, suspicious extension events, shadow-copy events, and total event count.")
     add_para(doc, "The representation intentionally uses what the source Sysmon logs can recover. It does not claim CPU, memory, raw file entropy, or complete enterprise context. Goodware is represented by a single run; therefore, the benign test pool is a random 20% split, not a separate session-disjoint goodware population.")
+
+    add_heading(doc, "2.1 Experimental system and evaluation architecture", 2)
+    add_para(doc, "The author did not execute ransomware or construct the RADAR laboratory environment. The experiment begins with the released Sysmon logs. Figure 1 separates the dataset provider's controlled endpoint executions from the author-controlled event aggregation, strict family split, inner validation, detector fitting, and final scoring. Family labels construct the outer split but are not predictive features. Each detector is tested once on the unseen ransomware family plus the fixed benign pool after all tuning decisions have been made without those test labels.")
+    add_architecture_figure(doc)
 
     add_heading(doc, "3. Detectors and Comparators")
     add_para(doc, "The rule baseline sums positive indicators for rename-like activity, suspicious extensions, shadow-copy events, unsigned process activity, deletion volume, and registry volume; three indicators trigger an alert. Isolation Forest and Local Outlier Factor are trained on standardized numerical features. The supervised baseline is a class-balanced Random Forest. An unweighted vote combines Isolation Forest, LOF, and Random Forest; a weighted ensemble combines four core methods using training-fold precision weights. The progression detector is retained as a deliberately limited comparator: it requires a recon-to-tamper-to-encrypt sequence on the same host/time stream.")
@@ -170,7 +204,7 @@ def main():
     add_bullet(doc, "Random cross-validation results are treated as development-era in-distribution reference results, not as the publication headline.")
 
     add_heading(doc, "5. Results")
-    add_para(doc, "Under the strict family protocol, the supervised Random Forest was the strongest individual learned detector. The unweighted vote had slightly higher macro F1 but lower AUC is not defined for its binary vote. The weighted ensemble was highly precise but recalled few attacks. The rules were intentionally conservative and the progression detector did not flag RADAR trajectories because the available per-host groups were too short to establish the required three-stage sequence.")
+    add_para(doc, "Under the strict family protocol, the supervised Random Forest was the strongest individual learned detector. The unweighted vote had slightly higher macro F1, but AUC is undefined for its binary vote. The weighted ensemble was highly precise but recalled few attacks. The rules were intentionally conservative, and the progression detector did not flag RADAR trajectories because the available per-host groups were too short to establish the required three-stage sequence.")
     add_results_table(doc,
         ["Comparator", "F1 (95% CI)", "Precision", "Recall", "AUC", "Recall @ 1% FPR"],
         [["Random Forest", "0.400 (+/-0.13)", "0.347", "0.531", "0.809", "0.166"],
@@ -184,6 +218,7 @@ def main():
     p = doc.add_paragraph(); p.paragraph_format.space_after = Pt(8)
     r = p.add_run("Table 1. Macro-average strict leave-one-family-out results on 4,300 RADAR Sysmon windows.")
     set_font(r, 8.5, italic=True, color=MUTED)
+    add_table_reading(doc, "The Random Forest row means that roughly 35% of its alerts were ransomware windows (precision 0.347) and it detected roughly 53% of ransomware windows (recall 0.531), producing F1 0.400. AUC 0.809 indicates useful but imperfect ranking. When its threshold was selected for a 1% validation FPR target, recall fell to 0.166, showing the cost of limiting false alerts.")
     add_para(doc, "The difference across unseen families is material. The well-sampled Akira and BlackBasta families reached F1 about 0.51, while CyberVolk and Meow reached 0.20. Small families also produce wide uncertainty. This evidence does not show that one detector will work reliably for a novel ransomware family in a live enterprise; it shows that the apparent advantage observed under random cross-validation weakens under a stricter family split.")
     add_results_table(doc,
         ["Held-out family", "Attack windows", "RF F1", "RF AUC", "Recall @ 1%", "Achieved test FPR"],
@@ -198,6 +233,7 @@ def main():
     p = doc.add_paragraph(); p.paragraph_format.space_after = Pt(8)
     r = p.add_run("Table 2. Per-family Random Forest outcomes. The 1% constraint is imposed on inner validation; test FPR is measured, not constrained, on the unseen family.")
     set_font(r, 8.5, italic=True, color=MUTED)
+    add_table_reading(doc, "The Lynx row contains 56 held-out ransomware windows. F1 0.429 and AUC 0.861 show moderate fixed-threshold detection but stronger ranking. At the validation-selected 1% FPR operating point, recall was 0.268; the unseen-family test FPR reached 0.011, illustrating that validation calibration cannot guarantee the same false-positive rate after a family shift.")
 
     add_heading(doc, "6. Interpretation")
     add_para(doc, "The strict results support three observations. First, labelled supervised learning remains useful within the RADAR feature representation, outperforming the individual unsupervised baselines in macro F1 and yielding an AUC of 0.809. Second, the weak rule baseline and the precision-heavy weighted ensemble illustrate why a high precision number should not be interpreted alone: both leave substantial attack activity unflagged. Third, the family-to-family variation is the main finding. Random-CV F1 of 0.515 is in-distribution optimistic compared with strict macro F1 of 0.400, and the family-specific scores make the average less reassuring than a single headline would suggest.")
@@ -209,13 +245,14 @@ def main():
     add_bullet(doc, "Several ransomware families contain few windows; their point estimates have substantial uncertainty.")
     add_bullet(doc, "The progression comparator is an omission on this source because the available traces do not support a full staged trajectory; it is not evidence that temporal detection is ineffective.")
     add_bullet(doc, "Precision weights for the weighted ensemble are fitted on training predictions and should be treated as exploratory until evaluated with out-of-fold calibration.")
+    add_bullet(doc, "RADAR's published drift and class-imbalance scenarios are not evaluated here; this manuscript tests family holdout on the reconstructed window representation.")
 
     add_heading(doc, "8. Reproducibility and Next Steps")
     add_para(doc, "The repository includes a raw-log adapter, a manifest of the RADAR archive, fixed seeds, strict-evaluation scripts, output JSON, dependency lockfile, and automated regression tests. The next empirical step is to evaluate on a longer-horizon endpoint corpus with genuine host/session grouping and to add RADAR's drift and imbalance settings. A second methodological improvement would calibrate ensemble weights through an inner validation or out-of-fold procedure rather than training-set precision.") 
 
     add_heading(doc, "8.1 Repository, data, and reproduction", 2)
-    add_para(doc, "Repository (anonymized for review): github.com/Farooq-Syed/host-based-behavioral-monitoring-and-anomaly-detection. Entry points: radar_strict_eval.py (strict leave-one-family-out evaluation), sysmon_adapter.py (raw-log to windowed telemetry), real_data_eval.py (development random-CV), plus scripts/reproduce_radar.py and scripts/download_real_data.py. Frozen preprocessing (window size, feature list, seeds, label rule) is recorded in radar_manifest.json and requirements-lock.txt.")
-    add_para(doc, "Data attribution and license. RADAR (J. Ispahany, M. R. Islam, M. A. Khan, M. Z. Islam, \u201cRADAR: a realistic dataset for advancing ransomware detection\u201d), Zenodo doi:10.5281/zenodo.14564541, CC BY 4.0. It is a public research dataset; the code and this manuscript are released under the repository's Non-Commercial Personal-Use License.")
+    add_para(doc, "Repository URL: withheld from this manuscript for double-blind review and available through an anonymous artifact when venue policy permits. Entry points: radar_strict_eval.py (strict leave-one-family-out evaluation), sysmon_adapter.py (raw-log to windowed telemetry), real_data_eval.py (development random-CV), plus scripts/reproduce_radar.py and scripts/download_real_data.py. Frozen preprocessing (window size, feature list, seeds, label rule) is recorded in radar_manifest.json and requirements-lock.txt.")
+    add_para(doc, "Data attribution and license. RADAR (J. Ispahany et al., Journal of Cybersecurity, doi:10.1186/s42400-025-00435-9), Zenodo doi:10.5281/zenodo.14564541, CC BY 4.0. It is a public research dataset; the code and this manuscript are released under the repository's Non-Commercial Personal-Use License.")
     add_para(doc, "Reproduction commands. python -m pip install -r requirements-lock.txt; python scripts/reproduce_radar.py; python radar_strict_eval.py --input data/radar_real_windows_with_family.csv --label-column label --split family --family-column family --metrics-output results/radar_strict_family_eval.json; python real_data_eval.py --input data/radar_real_windows.csv --label-column label --contamination 0.13; python -m pytest -q")
 
     add_heading(doc, "8.2 AI-use disclosure", 2)
@@ -226,11 +263,12 @@ def main():
 
     add_heading(doc, "References")
     for ref in [
-        "[1] J. Ispahany, M. R. Islam, M. A. Khan, and M. Z. Islam. RADAR: A realistic dataset for advancing ransomware detection. Zenodo, doi:10.5281/zenodo.14564541.",
-        "[2] F. T. Liu, K. M. Ting, and Z.-H. Zhou. Isolation Forest. 2008 IEEE International Conference on Data Mining, 2008.",
-        "[3] M. M. Breunig et al. LOF: Identifying Density-Based Local Outliers. SIGMOD Record, 2000.",
-        "[4] L. Breiman. Random Forests. Machine Learning, 2001.",
-        "[5] M. A. F. da Costa et al. A systematic review of ransomware detection approaches. Computers & Security, 2023."
+        "[1] J. Ispahany, O. B. Deho, M. R. Islam, M. A. Khan, and M. Z. Islam. RADAR: A realistic dataset for advancing ransomware detection. Journal of Cybersecurity 9(1), 2026. doi:10.1186/s42400-025-00435-9.",
+        "[2] J. Ispahany. RADAR: Datasets, scripts and code for advancing Ransomware Detection. Zenodo, doi:10.5281/zenodo.14564541.",
+        "[3] F. T. Liu, K. M. Ting, and Z.-H. Zhou. Isolation Forest. 2008 IEEE International Conference on Data Mining, 2008.",
+        "[4] M. M. Breunig et al. LOF: Identifying Density-Based Local Outliers. SIGMOD Record, 2000.",
+        "[5] L. Breiman. Random Forests. Machine Learning, 2001.",
+        "[6] M. A. F. da Costa et al. A systematic review of ransomware detection approaches. Computers & Security, 2023."
     ]:
         p = doc.add_paragraph(); p.paragraph_format.space_after = Pt(3); p.paragraph_format.left_indent = Inches(0.18); p.paragraph_format.first_line_indent = Inches(-0.18)
         r = p.add_run(ref); set_font(r, 9.2)

@@ -5,8 +5,9 @@ result with actual Sysmon events from a real, public, labeled corpus.
 
 ## Data source and license
 
-**[RADAR: A Realistic Dataset for Advancing Ransomware Detection]** (Ispahany, Charles Sturt
-University), Zenodo `10.5281/zenodo.14564541`, **CC BY 4.0**. It ships **raw Sysmon logs**:
+**[RADAR: A Realistic Dataset for Advancing Ransomware Detection]** (Ispahany et al.,
+Journal of Cybersecurity, `10.1186/s42400-025-00435-9`; dataset: Zenodo
+`10.5281/zenodo.14564541`, **CC BY 4.0**). It ships **raw Sysmon logs**:
 a large goodware log plus per-sample ransomware logs across families (Akira, BlackBasta,
 CyberVolk, LockBit, Lynx, Medusa, Meow), each Sysmon event carrying the ECS-style fields
 (`@timestamp`, `event.code` = Sysmon event ID, `file.path`, `process.executable`,
@@ -160,4 +161,5 @@ random-CV number (0.515) is in-distribution-optimistic.**
 ## Citation
 
 Jamil Ispahany, Md Rafiqul Islam, M. Arif Khan, Md Zahidul Islam. *RADAR: a realistic dataset
-for advancing ransomware detection.* Zenodo, DOI `10.5281/zenodo.14564541` (CC BY 4.0).
+for advancing ransomware detection.* Journal of Cybersecurity, DOI
+`10.1186/s42400-025-00435-9`; data DOI `10.5281/zenodo.14564541` (CC BY 4.0).

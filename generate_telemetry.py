@@ -10,7 +10,7 @@ telemetry (ransomware bursts of renames and high entropy, cryptominers pinning C
 exfiltration opening many connections) but the numbers are drawn from hand-specified
 distributions, not measured from real hosts. It is meant for pipeline development and
 teaching, not as a benchmark. For a realistic benchmark, adapt the input path to
-Sysmon/EDR exports; see docs/real_dataset_guide.md.
+Sysmon/EDR exports; see docs/DATA.md.
 
 Design choices that keep the data honest:
   - benign and attack distributions deliberately OVERLAP on several features, so the

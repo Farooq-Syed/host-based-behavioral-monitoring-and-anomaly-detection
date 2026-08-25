@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650">
+  <rect width="1200" height="650" fill="#ffffff"/>
+  <style>
+    .title{font:700 28px Arial;fill:#17365d}.sub{font:700 19px Arial;fill:#17365d}
+    .head{font:700 17px Arial;fill:#17365d}.body{font:15px Arial;fill:#263238}
+    .small{font:13px Arial;fill:#455a64}.box{fill:#eef4fb;stroke:#35679a;stroke-width:2}
+    .phase{fill:#f7f9fb;stroke:#647b91;stroke-width:2}.boundary{fill:none;stroke:#c54b56;stroke-width:3;stroke-dasharray:10 7}
+    .arrow{stroke:#2b5d87;stroke-width:4;fill:none;marker-end:url(#a)}
+  </style>
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2b5d87"/></marker></defs>
+  <text x="600" y="42" text-anchor="middle" class="title">RADAR unseen-family evaluation architecture</text>
+  <text x="55" y="88" class="sub">Dataset-provider environment</text>
+  <rect x="55" y="110" width="310" height="145" rx="14" class="box"/>
+  <text x="75" y="140" class="head">Controlled endpoint executions</text>
+  <text x="75" y="170" class="body">Seven ransomware families</text><text x="75" y="195" class="body">One goodware run</text>
+  <text x="75" y="220" class="body">Windows Sysmon event logs</text>
+  <path d="M365 182 H440" class="arrow"/>
+  <rect x="440" y="110" width="300" height="145" rx="14" class="box"/>
+  <text x="460" y="140" class="head">Telemetry preparation</text>
+  <text x="460" y="170" class="body">Aggregate five-minute windows</text><text x="460" y="195" class="body">4,300 windows total</text>
+  <text x="460" y="220" class="body">Ten Sysmon event-count features</text>
+  <path d="M740 182 H815" class="arrow"/>
+  <rect x="815" y="110" width="330" height="145" rx="14" class="box"/>
+  <text x="835" y="140" class="head">Leave-one-family-out split</text>
+  <text x="835" y="170" class="body">Test: unseen family + fixed</text><text x="835" y="195" class="body">20% random goodware pool</text>
+  <text x="835" y="220" class="body">No held-out-family labels in tuning</text>
+  <rect x="45" y="290" width="1110" height="310" rx="18" class="boundary"/>
+  <text x="65" y="322" class="sub">Author-controlled offline evaluation</text>
+  <rect x="75" y="360" width="235" height="150" rx="12" class="phase"/>
+  <text x="192" y="392" text-anchor="middle" class="head">Fit known families</text>
+  <text x="95" y="425" class="body">Rules, IF, LOF, RF,</text><text x="95" y="451" class="body">votes, and ensemble</text>
+  <text x="95" y="477" class="body">use the same features</text>
+  <path d="M310 435 H355" class="arrow"/>
+  <rect x="355" y="360" width="235" height="150" rx="12" class="phase"/>
+  <text x="472" y="392" text-anchor="middle" class="head">Inner validation</text>
+  <text x="375" y="425" class="body">Tune anomaly contamination</text><text x="375" y="451" class="body">and select RF threshold</text>
+  <text x="375" y="477" class="body">without outer-test labels</text>
+  <path d="M590 435 H635" class="arrow"/>
+  <rect x="635" y="360" width="235" height="150" rx="12" class="phase"/>
+  <text x="752" y="392" text-anchor="middle" class="head">Test unseen family</text>
+  <text x="655" y="425" class="body">Apply each fitted detector</text><text x="655" y="451" class="body">once to untouched family</text>
+  <text x="655" y="477" class="body">and benign test windows</text>
+  <path d="M870 435 H915" class="arrow"/>
+  <rect x="915" y="360" width="205" height="150" rx="12" class="phase"/>
+  <text x="1018" y="392" text-anchor="middle" class="head">Aggregate</text>
+  <text x="935" y="425" class="body">Per-family outcomes</text><text x="935" y="451" class="body">Macro F1 and AUC</text>
+  <text x="935" y="477" class="body">Recall and achieved FPR</text>
+  <text x="600" y="570" text-anchor="middle" class="small">The study evaluates released Sysmon telemetry; it is not a live enterprise deployment or a session-disjoint goodware test.</text>
+</svg>

@@ -134,7 +134,8 @@ deliberately weighted that way in the calibrated ensemble.
 ## 5. Real-data evaluation on RADAR (publication evidence)
 
 The synthetic comparison validated the pipeline but not real-world detection. RADAR
-(Zenodo DOI `10.5281/zenodo.14564541`, CC BY 4.0) ships **raw Sysmon logs** of real
+(Journal of Cybersecurity DOI `10.1186/s42400-025-00435-9`; data DOI
+`10.5281/zenodo.14564541`, CC BY 4.0) ships **raw Sysmon logs** of real
 ransomware families (Akira, BlackBasta, LockBit, Medusa, Lynx, CyberVolk, Meow) plus
 goodware. `sysmon_adapter.py` aggregates these into per-(host, 5-minute) windows over
 the ten Sysmon-recoverable event-type features; the final comparative stack runs on

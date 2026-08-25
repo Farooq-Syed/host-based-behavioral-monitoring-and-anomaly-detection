@@ -58,7 +58,7 @@ python real_data_eval.py --input data/radar_real_windows.csv --label-column labe
 ### Tests
 
 ```bash
-python -m pytest -q         # 35 passed
+python -m pytest -q         # 42 passed
 ```
 
 ## Expected Output Files
@@ -82,12 +82,10 @@ Synthetic (`monitor.py`):
 - [x] **radar_manifest.json** — frozen window/label/feature/seed definition + raw hashes
 - [x] **requirements-lock.txt** — pinned versions
 - [x] **scripts/reproduce_radar.py** — reproduces windows + family-tagged data + manifest
-- [x] **Tests passing** — 35 tests (adds `test_radar_strict_eval.py`, adapter family test)
+- [x] **Tests passing** — 42 tests, including strict-split and reviewer-fix regressions
 - [x] **LICENSE**, **CI workflow**, **REFERENCES.md**
 
 ## Loose Ends
 
-- `generate_telemetry.py` docstring references `docs/real_dataset_guide.md`; the real file is
-  `docs/DATA.md`.
 - RADAR raw CSVs are large (goodware ~126 MB) and are gitignored under `data/raw/`; only the
   windowed CSVs and the manifest are committed.
